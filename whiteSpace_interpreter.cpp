@@ -1,132 +1,48 @@
 
 #include <iostream>
+#include <map>
+#include <vector>
+#include <algorithm>
 
+using namespace std;
 
 int main() {
     return 0;
 }
 
+map<int, int> heap;
+vector<int> stack;
 
+int pop() {
+    int res = stack.back();
+    stack.pop_back();
+    return res;
+}
 
-// TODO: include error positions
+size_t pc = 0; // program counter
 
-using namespace std;
-
-#include <map>
-#include <vector>
-#include <algorithm>
-
-// Handle memory errors
-
-/*template <typename T>
-class Stack {
-private:
-    T* stack;
-    size_t capacity;
-    size_t size;
-public:
-    Stack() : capacity(1), size(0) {
-        stack = new T[capacity];
-
-        if (!newStack) {
-            throw exception("Ran out of memory");
-        }
-    }
-
-    ~Stack() {
-        delete[] arr;
-    }
-
-    void push(const T& elem) {
-        if (size == capacity) {
-            T* newStack = new T[2 * capacity];
-
-            if (!newStack) {
-                throw exception("Ran out of memory");
-            }
-
-            memcpy(newStack, stack, size);
-
-            delete[] stack;
-            capacity *= 2;
-            stack = newStack;
-        }
-
-        stack[size] = data;
-        ++size;
-    }
-
-    T pop() {
-        --size;
-        return stack[size];
-    }
-
-    T peek() const {
-        return stack[size];
-    }
-};
-
-template <typename T>
-class Heap {
-private:
-    // node struct for binary tree
-    struct Node {
-        int address;
-        T value;
-        Node* left;
-        Node* right
-    };
-
-    Node* root; // root node of binary search tree
-    size_t capacity;
-    size_t size;
-public:
-    Heap() : capacity(1), size(0), left(nullptr), right(nullptr) {
-        root = new Node[capacity];
-
-        if (!newStack) {
-            throw exception("Ran out of memory");
-        }
-    }
-
-    ~Heap() {
-        delete[] heap;
-    }
-
-    set(int address, const T& value) {
-
-    }
-
-    get() {
-
-    }
-};*/
-
+// decimal
 string intToStr(int num) {
     if (num == 0) return "0";
+    
+    bool isNegative = num < 0;
+    if (isNegative) {
+        num = -num;
+    }
+
     string res = "";
-    if (num < 0) {
+    while (num > 0) {
+        res += char((num % 10) + '0');
+        num /= 10;
+    }
+    
+    if (isNegative) {
         res += '-';
     }
 
-    while (num != 0) {
-        res += (num % 10) + '0';
-        num /= 10;
-    }
+    reverse(res.begin(), res.end());
+    return res;
 }
-
-// string STCK = " ";
-string STCK_PUSH = "  ";
-string STCK_DUPLICATEN = " \t ";
-string STCK_DISCARDN = " \t\n";
-string STCK_DUPLICATETOP = " \n\n";
-string STCK_SWAP = " \n\t";
-string STCK_DISCARDTOP = " \n\n";
-string STCK_PUSH = " \t ";
-string ARITH = "\t ";
-string HEAP = "\t\t";
-string IO = "\t\n";
-string CONT = "\n";
 
 // To help with debugging
 string unbleach(string s) {
@@ -134,26 +50,134 @@ string unbleach(string s) {
     return s;
 }
 
-// TokenType
-enum TT {
-    INT,
-
-};
-
-enum NEED {
-    NOTHING,
-    NUMBER,
-    LABEL
-}
-
 class Token {
 public:
-    Token(TT type, int value) : type(type), value(value) {}
-    TT type;
-    int value; // maybe not int
+    Token(void* function, int value) : function(function), value(value) {}
+    void* function;
+    int value;
 };
 
-class Lexer {
+void stack_push(int num) {
+    stack.push_back(num);
+}
+
+void stack_duplicate(int num) {
+    if (num >= stack.size()) throw exception("Runtime error: range out of bounds");
+    stack.push_back(stack[num]);
+}
+
+void stack_discard(int num) {
+
+}
+
+void stack_duplicateTop() {
+    stack.push_back(stack[stack.size() - 1]);
+}
+
+void stack_swapTop() {
+    if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to swap them");
+    int tmp = stack[stack.size() - 1];
+    stack[stack.size() - 1] = stack[stack.size() - 2];
+    stack[stack.size() - 2] = tmp;
+}
+
+void stack_discardTop() {
+    if (stack.size() < 1) throw exception("Runtime error: cant pop empty stack");
+}
+
+// Arithmetic
+void arith_add() {
+    if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to add them");
+    stack.push_back(pop() + pop());
+}
+
+void arith_sub() {
+    if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to subtract them");
+    stack.push_back(-pop() + pop());
+}
+
+void arith_mult() {
+    if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to multiply them");
+    stack.push_back(pop() * pop());
+}
+
+void arith_div() {
+    if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to divide them");
+    int a = pop();
+    int b = pop();
+    if (a == 0) throw exception("Runtime error: division by 0");
+    stack.push_back(b / a); // floor of the division
+}
+
+void arith_mod() {
+    if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to modulo them");
+    int a = pop();
+    int b = pop();
+    int sign = a < 0 ? -1 : 1;
+    if (a == 0) throw exception("Runtime error: modulo by 0");
+    stack.push_back((b % a) * sign);
+}
+
+// Heap access
+void heap_set() {
+    if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to ....... them");
+    int a = pop();
+    int b = pop();
+    heap.set(a, b);
+}
+
+void heap_get() {
+    if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
+    int a = pop();
+    int b;
+    if (heap.get(a, b)) throw exception("Runtime error: No such adress in heap exists");
+    stack.push_back(b);
+}
+
+// Input/Output
+void output_char() {
+    if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
+    int a = pop();
+    //output as char
+}
+
+void output_num() {
+    if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
+    int a = pop();
+    //output as num
+    output += intToStr(a);
+}
+
+void input_char() {
+
+}
+
+void input_num() {
+
+}
+
+void control_call(size_t label) {
+    pc = label;
+}
+
+void control_jump(size_t label) {
+
+}
+
+void control_jumpIfZero(size_t label) {
+
+}
+
+void control_jumpIfNegative(size_t label) {
+
+}
+
+void control_return(size_t label) {
+
+}
+
+// Led and parse in one go
+class Parser {
 private:
     string code;
     int pos = -1;
@@ -180,12 +204,12 @@ private:
         
     }
 
-    TT match() {
+    /*TT match() {
         
     }
 
-    NEED getAttr(TT type) {
-        switch (type) {
+    NEED getAttr(void* function) {
+        switch (function) {
         case TT::STACK_PUSH: return NEED::NUMBER;
         case TT::STACK_DUPLICATE: return NEED::NUMBER;
         case TT::STACK_DISCARD: return NEED::NUMBER;
@@ -196,7 +220,7 @@ private:
         case TT::CONTROL_idk2: return NEED::LABEL;
         }
         return NEED::NOTHING;
-    }
+    }*/
 
     int makeNumber() {
         int sign;
@@ -220,80 +244,112 @@ private:
             num *= 2;
             num += (current_char == '\t'); // ch is either tab -> 1, or space -> 0
         }
-        eat(); // eat the newLine
+        advance(); // advane past the newLine
         return sign * num;
     }
 
     int makeLabel() {
         int num = 0;
-        while (current_char) {
+        while (current_char != '\n') {
             eat();
 
             num *= 2;
             num += (current_char == '\t'); // ch is either tab -> 1, or space -> 0
         }
-        eat();
+        advance(); // advane past the newLine
 
-        // make sure label is unique
         return num;
     }
 
 public:
-    Lexer(const string& code) : code(code) {}
-    vector<Token> lex(const string& code) {
+    Parser(const string& code) : code(code) {}
+    vector<Token> parse(const string& code) {
         vector<Token> res;
         while (current_char != '\0') {
             switch (current_char) {
             case ' ':
                 // Stack manipulation
-                if (advance()) throw exception();
+                eat();
                 switch (current_char) {
                 case ' ':
-                    if (advance()) throw exception();
-                    res.push_back(Token(TT::INT, makeNumber()));
+                    eat();
+                    res.push_back(Token(stack_push, makeNumber()));
                     break;
                 case '\t':
-                    if (advance()) throw exception();
+                    eat();
                     switch (current_char) {
                     case ' ':
-                        if (advance()) throw exception();
-                        res.push_back(Token(TT::INT, createNumber()));
+                        eat();
+                        res.push_back(Token(stack_duplicate, makeNumber()));
                         break;
                     case '\n':
-                        if (advance()) throw exception();
-                        res.push_back(Token(TT::INT, createNumber()));
+                        eat();
+                        res.push_back(Token(stack_discard, makeNumber()));
                         break;
                     default:
                         throw exception();
                     }
+                case '\n':
+                    eat();
+                    switch (current_char) {
+                    case ' ':
+                        advance();
+                        res.push_back(Token(stack_duplicateTop, 0));
+                        break;
+                    case '\t':
+                        advance();
+                        res.push_back(Token(stack_swapTop, 0));
+                        break;
+                    case '\n':
+                        advance();
+                        res.push_back(Token(stack_discardTop, 0));
+                        break;
+                    default:
+                        // unreachable
+                        throw exception();
+                    }
+                default:
+                    // unreachable
+                    throw exception();
                 }
                 break;
             case '\t':
-                if (advance()) throw exception();
+                eat();
                 switch (current_char) {
                 case ' ':
                     // Arithmetic
-                    if (advance()) throw exception();
+                    eat();
                     switch (current_char) {
                     case ' ':
-                        if (advance()) throw exception();
+                        eat();
                         switch (current_char) {
                         case ' ':
+                            advance();
+                            res.push_back(Token(arith_add, 0));
                             break;
                         case '\t':
+                            advance();
+                            res.push_back(Token(arith_sub, 0));
                             break;
                         case '\n':
+                            advance();
+                            res.push_back(Token(arith_mult, 0));
                             break;
                         default:
+                            // unreachable
                             throw exception();
                         }
                         break;
                     case '\t':
-                        if (advance()) throw exception();
+                        eat();
                         switch (current_char) {
                         case ' ':
+                            advance();
+                            res.push_back(Token(arith_div, 0));
                             break;
                         case '\t':
+                            advance();
+                            res.push_back(Token(arith_mod, 0));
                             break;
                         default:
                             throw exception();
@@ -305,13 +361,127 @@ public:
                     break;
                 case '\t':
                     // Heap Access
+                    eat();
+                    switch (current_char) {
+                    case ' ':
+                        advance();
+                        res.push_back(Token(heap_set, 0));
+                        break;
+                    case '\t':
+                        advance();
+                        res.push_back(Token(heap_get, 0));
+                        break;
+                    default:
+                        throw exception();
+                    }
                     break;
                 case '\n':
+                    // Input/Output
+                    eat();
+                    switch (current_char) {
+                    case ' ':
+                        eat();
+                        switch (current_char) {
+                        case ' ':
+                            advance();
+                            res.push_back(Token(output_char, 0));
+                            break;
+                        case '\t':
+                            advance();
+                            res.push_back(Token(output_num, 0));
+                            break;
+                        default:
+                            throw exception();
+                        }
+                        break;
+                    case '\t':
+                        eat();
+                        switch (current_char) {
+                        case ' ':
+                            advance();
+                            res.push_back(Token(input_char, 0));
+                            break;
+                        case '\t':
+                            advance();
+                            res.push_back(Token(input_num, 0));
+                            break;
+                        default:
+                            throw exception();
+                        }
+                        break;
+                    default:
+                        throw exception();
+                    }
                     break;
                 default:
                     throw exception();
                 }
+                break;
             case '\n':
+                // Flow-Control
+                eat();
+                switch (current_char) {
+                case ' ':
+                    eat();
+                    switch (current_char) {
+                    case ' ':
+                        eat();
+                        labels.insert(makeLabel(), res.size()); // check if already exists
+                        //res.push_back(Token(, );
+                        break;
+                    case '\t':
+                        eat();
+                        int nthCommand = labels.get(makeLabel());
+                        res.push_back(Token(control_call, nthCommand));
+                        break;
+                    case '\n':
+                        eat();
+                        int nthCommand = labels.get(makeLabel());
+                        res.push_back(Token(control_jump, nthCommand));
+                        break;
+                    default:
+                        // unreachable
+                        throw exception();
+                    }
+                    break;
+                case '\t':
+                    eat();
+                    switch (current_char) {
+                    case ' ':
+                        eat();
+                        int nthCommand = labels.get(makeLabel());
+                        res.push_back(Token(control_jumpIfZero, nthCommand));
+                        break;
+                    case '\t':
+                        eat();
+                        int nthCommand = labels.get(makeLabel());
+                        res.push_back(Token(control_jumpIfNegative, nthCommand));
+                        break;
+                    case '\n':
+                        eat();
+                        int nthCommand = labels.get(makeLabel());
+                        res.push_back(Token(control_return, nthCommand));
+                        break;
+                    default:
+                        // unreachable
+                        throw exception();
+                    }
+                    break;
+                case '\n':
+                    eat();
+                    switch (current_char) {
+                    case '\n':
+                        advance();
+                        res.push_back(Token(control_exit, 0));
+                        break;
+                    default:
+                        throw exception();
+                    }
+                    break;
+                default:
+                    // unreachable
+                    throw exception();
+                }
                 break;
             default:
                 throw exception();
@@ -345,7 +515,9 @@ public:
             } else {
                 throw exception();
             }*/
+        res.push_back(Token(endOfProgram, 0)); // should not reach, because programs should end with control_exit
 
+        return res;
     }
 };
 
@@ -393,122 +565,23 @@ private:
     void eat() {
         if (advance()) throw exception("Unexpected end of file");
     }
-}
+};
 
-class Runtime {
-    map<int, int > heap;
-    vector<int> stack;
-    size_t stackPointer = 0;
+class Interpreter {
+    
+    // size_t stackPointer = 0;
 
     // Stack manipulation
-    void stack_push(int num) {
-        stack.push_back(num);
-    }
-
-    void stack_duplicate(int num) {
-        if (num >= stack.size()) throw exception("Runtime error: range out of bounds");
-        stack.push_back(stack[num]);
-    }
-
-    void stack_discard(int num) {
-        
-    }
-
-    void stack_duplicateTop() {
-        stack.push_back(stack[stack.size() - 1]);
-    }
-
-    void stack_swapTop() {
-        if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to swap them");
-        int tmp = stack[stack.size() - 1];
-        stack[stack.size() - 1] = stack[stack.size() - 2];
-        stack[stack.size() - 2] = tmp;
-    }
-
-    void stack_discardTop() {
-        if (stack.size() < 1) throw exception("Runtime error: cant pop empty stack");
-    }
-
-    // Arithmetic
-    void arith_add() {
-        if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to add them");
-        stack.push_back(stack.pop_back() + stack.pop_back());
-    }
-
-    void arith_sub() {
-        if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to subtract them");
-        stack.push_back(-stack.pop_back() + stack.pop_back());
-    }
-
-    void arith_mult() {
-        if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to multiply them");
-        stack.push_back(stack.pop_back() * stack.pop_back());
-    }
-
-    void arith_div() {
-        if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to divide them");
-        int a = stack.pop_back();
-        int b = stack.pop_back();
-        if (b == 0) throw exception("Runtime error: division by 0");
-        stack.push_back(b / a); // floor of the division
-    }
-
-    void arith_div() {
-        if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to modulo them");
-        int a = stack.pop_back();
-        int b = stack.pop_back();
-        if (b == 0) throw exception("Runtime error: modulo by 0");
-        stack.push_back(b / a); // floor of the division
-        // TODO: sign is needed
-    }
-
-    // Heap access
-    void heap_set() {
-        if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to ....... them");
-        int a = stack.pop_back();
-        int b = stack.pop_back();
-        heap.set(a, b);
-    }
-
-    void heap_get() {
-        if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
-        int a = stack.pop_back();
-        int b;
-        if (heap.get(a, b)) throw exception("Runtime error: No such adress in heap exists");
-        stack.push_back(b);
-    }
-
-    // Input/Output
-    void output_char() {
-        if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
-        int a = stack.pop_back();
-        //output as char
-    }
-
-    void output_num() {
-        if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
-        int a = stack.pop_back();
-        //output as num
-        output += intToStr(a);
-    }
-
-    void input_char() {
     
-    }
-
-    void input_number() {
-    
-    }
 
     // Flow Control
     /*void control_mark(int label) {
         
     }*/
-}
+};
 
 // Solution
-string whitespace(const string& code, const string& inp = string())
-{
+string whitespace(const string& code, const string& inp) {
 
 
     map<int, int> heap;
