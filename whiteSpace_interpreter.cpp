@@ -51,6 +51,83 @@ string intToStr(int num) {
     return res;
 }
 
+const char* hexDigits = "0123456789ABCDEF";
+class Reader {
+public:
+    Reader(const string& inp) : inp(inp) {}
+
+    int readNum() {
+        if (current_char == '\0') throw exception("Runtime error: Input was empty when trieying to read number from it");
+        if (current_char == '0') {
+            if (advance()) return 0;
+            if (current_char == '\n') return 0;
+            if (current_char == 'x') {
+                eat(); // eat 'x'
+                int num = 0;
+                while (current_char != '\n') {
+                    num *= 16;
+                    num += hexCharToInt(current_char);
+                    eat();
+                }
+                eat(); // eat '\n'
+                return num;
+            }
+        }
+
+        int num = 0;
+        while (current_char != '\n') {
+            num *= 10;
+            num += current_char - '0';
+            eat();
+        }
+        eat(); // eat '\n'
+        return num;
+    }
+
+    char readChar() {
+        if (pos >= inp.length()) throw exception("Runtime error: input was empty when trying to read a character");
+        advance();
+    }
+private:
+    const string& inp;
+    int pos = 0;
+    char current_char;
+
+    bool advance() {
+        ++pos;
+        if (pos >= inp.length()) return true;
+        current_char = inp[pos];
+        return false;
+    }
+
+    void eat() {
+        if (advance()) throw exception("Unexpected end of file");
+    }
+
+    int hexCharToInt(char hexChar) {
+        switch (hexChar) {
+        case '0': return 0;
+        case '1': return 1;
+        case '2': return 2;
+        case '3': return 3;
+        case '4': return 4;
+        case '5': return 5;
+        case '6': return 6;
+        case '7': return 7;
+        case '8': return 8;
+        case '9': return 9;
+        case 'A': case 'a': return 10;
+        case 'B': case 'b': return 11;
+        case 'C': case 'c': return 12;
+        case 'D': case 'd': return 13;
+        case 'E': case 'e': return 14;
+        case 'F': case 'f': return 15;
+        default:
+            throw std::invalid_argument("Invalid hexadecimal character");
+        }
+    }
+};
+
 // To help with debugging
 string unbleach(string s) {
     transform(s.begin(), s.end(), s.begin(), [](char c) { return (c == ' ') ? 's' : ((c == '\n') ? 'n' : 't'); });
@@ -67,11 +144,13 @@ public:
 // Stack Manipulation
 void stack_push(int num) {
     stack.push_back(num);
+    ++pc;
 }
 
 void stack_duplicate(int num) {
     if (num >= stack.size()) throw exception("Runtime error: range out of bounds");
     stack.push_back(stack[stack.size() - num - 1]); //////IDK
+    ++pc;
 }
 
 void stack_discard(int num) {
@@ -89,10 +168,12 @@ void stack_discard(int num) {
         stack.pop_back();
     }*/
     stack.push_back(top);
+    ++pc;
 }
 
 void stack_duplicateTop(int) {
     stack.push_back(stack[stack.size() - 1]);
+    ++pc;
 }
 
 void stack_swapTop(int) {
@@ -100,26 +181,31 @@ void stack_swapTop(int) {
     int tmp = stack[stack.size() - 1];
     stack[stack.size() - 1] = stack[stack.size() - 2];
     stack[stack.size() - 2] = tmp;
+    ++pc;
 }
 
 void stack_discardTop(int) {
     if (stack.size() < 1) throw exception("Runtime error: cant pop empty stack");
+    ++pc;
 }
 
 // Arithmetic
 void arith_add(int) {
     if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to add them");
     stack.push_back(pop() + pop());
+    ++pc;
 }
 
 void arith_sub(int) {
     if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to subtract them");
     stack.push_back(-pop() + pop());
+    ++pc;
 }
 
 void arith_mult(int) {
     if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to multiply them");
     stack.push_back(pop() * pop());
+    ++pc;
 }
 
 void arith_div(int) {
@@ -128,6 +214,7 @@ void arith_div(int) {
     int b = pop();
     if (a == 0) throw exception("Runtime error: division by 0");
     stack.push_back(b / a); // floor of the division
+    ++pc;
 }
 
 void arith_mod(int) {
@@ -137,12 +224,14 @@ void arith_mod(int) {
     int sign = a < 0 ? -1 : 1;
     if (a == 0) throw exception("Runtime error: modulo by 0");
     stack.push_back((b % a) * sign);
+    ++pc;
 }
 
 // Heap access
 void heap_set(int) {
     if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to ....... them");
     heap[pop()] = pop();
+    ++pc;
 }
 
 void heap_get(int) {
@@ -150,6 +239,7 @@ void heap_get(int) {
     map<int, int>::iterator it = heap.find(pop());
     if (it == heap.end()) throw exception("Runtime error: No such adress in heap exists");
     stack.push_back(it->second); // it->second is the value
+    ++pc;
 }
 
 // Input/Output
@@ -157,26 +247,33 @@ void output_char(int) {
     if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
     //output as char
     output += static_cast<char>(pop() % 256); // maybe % 256 is not needed
+    ++pc;
 }
 
 void output_num(int) {
     if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
     //output as num
     output += intToStr(pop());
+    ++pc;
 }
 
 void input_char(int) {
-
+    //Reader myReader("aba");
+    if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
+    heap[pop()] = myReader.readChar();
+    ++pc;
 }
 
 void input_num(int) {
-
+    //Reader myReader("aba");
+    if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
+    heap[pop()] = myReader.readNum();
+    ++pc;
 }
 
 // Flow Control
 void control_call(int label) {
     pc = label;
-    // WOrk in progress
 }
 
 void control_jump(int label) {
@@ -188,6 +285,8 @@ void control_jumpIfZero(int label) {
     if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
     if (pop() == 0) {
         pc = label;
+    } else {
+        ++pc;
     }
 }
 
@@ -195,17 +294,21 @@ void control_jumpIfNegative(int label) {
     if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
     if (pop() < 0) {
         pc = label;
+    } else {
+        ++pc;
     }
 }
 
 void control_return(int label) {
     if (callStack.size() < 1) throw exception("Runtime error: Cannot return, because callstack is empty");
-    pc = callStack.back();
+    pc = callStack.back() + 1; // +1 because it should not call the subroutine again but progress forward
     callStack.pop_back();
 }
 
-void control_exit(int) {
-    // end program
+void control_exit(int) {} // end program
+
+void unexpected_endOfProgram(int) {
+    throw exception("Programcode ended unexpectedly (without end of program statement)");
 }
 
 // Lex and parse in one go
@@ -273,6 +376,7 @@ private:
 
 public:
     Parser(const string& code) : code(code) {}
+
     vector<Token> parse() {
         vector<Token> res;
         while (current_char != '\0') {
@@ -511,84 +615,10 @@ public:
                 throw exception();
             }
         }
-            /*if (isKeyword()) {
-                TT type match(KEYWORDS);
-                NEED attributeNeed = getAttrs(type);
-                switch (attributeNeed) {
-                case NEED::NOTHING:
-                    res.push_back(Token(type, -1));
-                    break;
-                case NEED::NUMBER:
-                    res.push_back(Token(type, makeNumber()));
-                    break;
-                case NEED::LABEL:
-                    res.push_back(Token(type, makeLabel()));
-                    break;
-                default:
-                    throw exception();
-                }
 
-                if ((attributeNeed == NEED::NOTHING)) {
-                    res.push_back(Token(type, -1));
-                } else if (attributeNeed == NEED::NUMBER) {
-                    res.push_back(Token(type, makeNumber()));
-                } else if (attributeNeed == NEED::LABEL) {
-                    res.push_back(Token(type, makeLabel()));
-                }
-                
-            } else {
-                throw exception();
-            }*/
-
-            // should not reach, because programs should end with control_exit
+        // should not reach, because programs should end with control_exit
+        res.push_back(Token(unexpected_endOfProgram, 0));
         return res;
-    }
-};
-
-class Reader {
-public:
-    Reader(const string& inp) : inp(inp) {}
-    int readNum() {
-        // TODO: throw exception if input needed but there are no more left
-        if (current_char == '0') {
-            if (advance()) return 0;
-            if (current_char == '\n') return 0;
-            if (current_char == 'x') {
-                eat();
-                int num = 0;
-                while (current_char != '\n') {
-                    num *= 16;
-                    num += current_char - '0'; // May not work for ABCDEF
-                    if (advance()) return num;
-                }
-                eat();
-                return num;
-            }
-        }
-
-        int num = 0;
-        while (current_char != '\n') {
-            num *= 10;
-            num += current_char - '0';
-            if (advance()) return num;
-        }
-        eat();
-        return num;
-    }
-private:
-    const string& inp;
-    int pos = -1;
-    char current_char;
-
-    bool advance() {
-        ++pos;
-        if (pos >= inp.length()) return true;
-        current_char = inp[pos];
-        return false;
-    }
-
-    void eat() {
-        if (advance()) throw exception("Unexpected end of file");
     }
 };
 
@@ -598,10 +628,21 @@ string whitespace(const string& code, const string& inp) {
     Parser myparser(code);
     vector<Token> tokens = myparser.parse();
 
+    if (tokens.size() == 0) throw exception("Tokens are empty, meaning there was no end of program statement");
+
     // Interpreter
-    for (Token tok : tokens) {
+    /*for (Token tok : tokens) {
         void(*funcPtr)(int) = tok.function;
         if (funcPtr == control_exit) {
+            return output;
+        }
+        funcPtr(tok.value);
+    }*/
+
+    for (;;) {
+        Token tok = tokens[pc];
+        void(*funcPtr)(int) = tok.function;
+        if (funcPtr == control_exit) { // it needs to be in every correct program, if there is none the loop will break, beacuse the unexpected_endOfProgram function would be called resulting in throwing an error
             return output;
         }
         funcPtr(tok.value);
