@@ -660,9 +660,21 @@ string whitespace(const string& code, const string& inp = string()) {
 int main() {
     // Tests
 
-    whitespace("")
+    /*ifstream ifs("t.txt");
+    string s = "";
+    char c;
+    while (ifs.get(c)) { s += c; }*/
 
     cout << whitespace("   \t      \t \n   \t\t\t \t\t   \t\t  \t \n    \n\t\t    \t  \t   \n\t\n     \t\t  \t \t\n\t\n     \t\t \t\t  \n \n \t\n  \t\n     \t\t \t\t\t\t\n\t\n     \t     \n\t\n     \t \t \t\t\t\n\t\n     \t\t \t\t\t\t\n\t\n     \t\t\t  \t \n\t\n     \t\t \t\t  \n\t\n     \t\t  \t  \n\t\n     \t    \t\n\t\n     \t \t \n\t\n   !", "");
+
+    /*string outt = "";
+    for (char c : s) {
+        if (c == '\t') outt += "\\t";
+        else if (c == '\n') outt += "\\n";
+        else if (c == ' ') outt += ' ';
+    }
+
+    cout << outt << '!';*/
 
     return 0;
 }
