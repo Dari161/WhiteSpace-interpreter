@@ -6,6 +6,8 @@
 
 using namespace std;
 
+using my_size_t = int;
+
 int main() {
     return 0;
 }
@@ -17,20 +19,20 @@ Fix: Process the labels during parsing and store them before evaluating instruct
 // Memory alloc errors are handled by the map and vector class themselves
 
 map<int, int> heap;
-vector<int> stack;
+vector<int> mystack;
 
-vector<size_t> callStack;
-map<size_t, size_t> labels;
+vector<my_size_t> callStack;
+map<my_size_t, my_size_t> labels;
 
 string output = "";
 
 int pop() {
-    int res = stack.back();
-    stack.pop_back();
+    int res = mystack.back();
+    mystack.pop_back();
     return res;
 }
 
-size_t pc = 0; // program counter
+my_size_t pc = 0; // program counter
 
 // decimal
 string intToStr(int num) {
@@ -61,10 +63,11 @@ public:
 
     void setInput(string* input) {
         inp = input;
+        advance();
     }
 
     int readNum() {
-        if (current_char == '\0') throw exception("Runtime error: Input was empty when trieying to read number from it");
+        if (current_char == '\0') throw runtime_error("Runtime error: Input was empty when trieying to read number from it");
         if (current_char == '0') {
             if (advance()) return 0;
             if (current_char == '\n') return 0;
@@ -92,14 +95,14 @@ public:
     }
 
     char readChar() {
-        if (current_char == '\0') throw exception("Runtime error: input was empty when trying to read a character");
+        if (current_char == '\0') throw runtime_error("Runtime error: input was empty when trying to read a character");
         char ret = current_char;
         advance();
         return ret;
     }
 private:
     string* inp;
-    int pos = 0;
+    int pos = -1;
     char current_char;
 
     bool advance() {
@@ -110,7 +113,7 @@ private:
     }
 
     void eat() {
-        if (advance()) throw exception("Unexpected end of file");
+        if (advance()) throw runtime_error("Unexpected end of file");
     }
 
     int hexCharToInt(char hexChar) {
@@ -132,7 +135,7 @@ private:
         case 'E': case 'e': return 14;
         case 'F': case 'f': return 15;
         default:
-            throw exception("Invalid hexadecimal character");
+            throw runtime_error("Invalid hexadecimal character");
         }
     }
 };
@@ -154,128 +157,130 @@ public:
 
 // Stack Manipulation
 void stack_push(int num) {
-    stack.push_back(num);
+    mystack.push_back(num);
     ++pc;
 }
 
 void stack_duplicate(int num) {
-    if (num >= stack.size()) throw exception("Runtime error: range out of bounds");
-    stack.push_back(stack[stack.size() - num - 1]); //////IDK
+    if (num >= mystack.size()) throw runtime_error("Runtime error: range out of bounds");
+    mystack.push_back(mystack[mystack.size() - num - 1]); //////IDK
     ++pc;
 }
 
 void stack_discard(int num) {
-    if (num < 0 || num >= stack.size()) { // remove everything but the top value
-        if (stack.size() < 0) throw exception("Runtime error : stack is empty");
+    if (num < 0 || num >= mystack.size()) { // remove everything but the top value
+        if (mystack.size() < 0) throw runtime_error("Runtime error : stack is empty");
         int top = pop();
-        stack.clear();
-        stack.push_back(top);
+        mystack.clear();
+        mystack.push_back(top);
         return;
     }
     int top = pop();
     // Resize the vector to remove the last n elements
-    stack.resize(stack.size() - num);
+    mystack.resize(mystack.size() - num);
     /*for (int i = 0; i < num; ++i) {
-        stack.pop_back();
+        mystack.pop_back();
     }*/
-    stack.push_back(top);
+    mystack.push_back(top);
     ++pc;
 }
 
 void stack_duplicateTop(int) {
-    stack.push_back(stack[stack.size() - 1]);
+    mystack.push_back(mystack[mystack.size() - 1]);
     ++pc;
 }
 
 void stack_swapTop(int) {
-    if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to swap them");
-    int tmp = stack[stack.size() - 1];
-    stack[stack.size() - 1] = stack[stack.size() - 2];
-    stack[stack.size() - 2] = tmp;
+    if (mystack.size() < 2) throw runtime_error("Runtime error: must have 2 values on stack to swap them");
+    int tmp = mystack[mystack.size() - 1];
+    mystack[mystack.size() - 1] = mystack[mystack.size() - 2];
+    mystack[mystack.size() - 2] = tmp;
     ++pc;
 }
 
 void stack_discardTop(int) {
-    if (stack.size() < 1) throw exception("Runtime error: cant pop empty stack");
+    if (mystack.size() < 1) throw runtime_error("Runtime error: cant pop empty stack");
     ++pc;
 }
 
 // Arithmetic
 void arith_add(int) {
-    if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to add them");
-    stack.push_back(pop() + pop());
+    if (mystack.size() < 2) throw runtime_error("Runtime error: must have 2 values on stack to add them");
+    mystack.push_back(pop() + pop());
     ++pc;
 }
 
 void arith_sub(int) {
-    if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to subtract them");
-    stack.push_back(-pop() + pop());
+    if (mystack.size() < 2) throw runtime_error("Runtime error: must have 2 values on stack to subtract them");
+    mystack.push_back(-pop() + pop());
     ++pc;
 }
 
 void arith_mult(int) {
-    if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to multiply them");
-    stack.push_back(pop() * pop());
+    if (mystack.size() < 2) throw runtime_error("Runtime error: must have 2 values on stack to multiply them");
+    mystack.push_back(pop() * pop());
     ++pc;
 }
 
 void arith_div(int) {
-    if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to divide them");
+    if (mystack.size() < 2) throw runtime_error("Runtime error: must have 2 values on stack to divide them");
     int a = pop();
     int b = pop();
-    if (a == 0) throw exception("Runtime error: division by 0");
-    stack.push_back(b / a); // floor of the division
+    if (a == 0) throw runtime_error("Runtime error: division by 0");
+    mystack.push_back(b / a); // floor of the division
     ++pc;
 }
 
 void arith_mod(int) {
-    if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to modulo them");
+    if (mystack.size() < 2) throw runtime_error("Runtime error: must have 2 values on stack to modulo them");
     int a = pop();
     int b = pop();
     int sign = a < 0 ? -1 : 1;
-    if (a == 0) throw exception("Runtime error: modulo by 0");
-    stack.push_back((b % a) * sign);
+    if (a == 0) throw runtime_error("Runtime error: modulo by 0");
+    mystack.push_back((abs(b) % a) * sign);
     ++pc;
 }
 
 // Heap access
 void heap_set(int) {
-    if (stack.size() < 2) throw exception("Runtime error: must have 2 values on stack to ....... them");
-    heap[pop()] = pop();
+    if (mystack.size() < 2) throw runtime_error("Runtime error: must have 2 values on stack to ....... them");
+    int a = pop();
+    heap[pop()] = a;
+    // in heap[pop()] = pop() the order of function evaluation would depend on the complier, since it is unspecified
     ++pc;
 }
 
 void heap_get(int) {
-    if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
+    if (mystack.size() < 1) throw runtime_error("Runtime error: must have a values on stack to .......");
     map<int, int>::iterator it = heap.find(pop());
-    if (it == heap.end()) throw exception("Runtime error: No such adress in heap exists");
-    stack.push_back(it->second); // it->second is the value
+    if (it == heap.end()) throw runtime_error("Runtime error: No such adress in heap exists");
+    mystack.push_back(it->second); // it->second is the value
     ++pc;
 }
 
 // Input/Output
 void output_char(int) {
-    if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
+    if (mystack.size() < 1) throw runtime_error("Runtime error: must have a values on stack to .......");
     //output as char
     output += static_cast<char>(pop() % 256); // maybe % 256 is not needed
     ++pc;
 }
 
 void output_num(int) {
-    if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
+    if (mystack.size() < 1) throw runtime_error("Runtime error: must have a values on stack to .......");
     //output as num
     output += intToStr(pop());
     ++pc;
 }
 
 void input_char(int) {
-    if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
+    if (mystack.size() < 1) throw runtime_error("Runtime error: must have a values on stack to .......");
     heap[pop()] = myReader.readChar();
     ++pc;
 }
 
 void input_num(int) {
-    if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
+    if (mystack.size() < 1) throw runtime_error("Runtime error: must have a values on stack to .......");
     heap[pop()] = myReader.readNum();
     ++pc;
 }
@@ -291,7 +296,7 @@ void control_jump(int label) {
 }
 
 void control_jumpIfZero(int label) {
-    if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
+    if (mystack.size() < 1) throw runtime_error("Runtime error: must have a values on stack to .......");
     if (pop() == 0) {
         pc = label;
     } else {
@@ -300,7 +305,7 @@ void control_jumpIfZero(int label) {
 }
 
 void control_jumpIfNegative(int label) {
-    if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
+    if (mystack.size() < 1) throw runtime_error("Runtime error: must have a values on stack to .......");
     if (pop() < 0) {
         pc = label;
     } else {
@@ -309,7 +314,7 @@ void control_jumpIfNegative(int label) {
 }
 
 void control_return(int label) {
-    if (callStack.size() < 1) throw exception("Runtime error: Cannot return, because callstack is empty");
+    if (callStack.size() < 1) throw runtime_error("Runtime error: Cannot return, because callstack is empty");
     pc = callStack.back() + 1; // +1 because it should not call the subroutine again but progress forward
     callStack.pop_back();
 }
@@ -317,7 +322,7 @@ void control_return(int label) {
 void control_exit(int) {} // end program
 
 void unexpected_endOfProgram(int) {
-    throw exception("Programcode ended unexpectedly (without end of program statement)");
+    throw runtime_error("Programcode ended unexpectedly (without end of program statement)");
 }
 
 // Lex and parse in one go
@@ -337,7 +342,7 @@ private:
     }
 
     void eat() {
-        if (advance()) throw exception("Unexpected end of file");
+        if (advance()) throw runtime_error("Unexpected end of file");
     }
 
     bool expect(char ch) {
@@ -356,7 +361,7 @@ private:
             sign = 1;
             break;
         default:
-            throw exception("Expected a number. Numbers must start with tab or space");
+            throw runtime_error("Expected a number. Numbers must start with tab or space");
         }
 
         int num = 0;
@@ -370,8 +375,8 @@ private:
         return sign * num;
     }
 
-    size_t makeLabel() {
-        size_t num = 0;
+    my_size_t makeLabel() {
+        my_size_t num = 0;
         while (current_char != '\n') {
             eat();
 
@@ -384,7 +389,9 @@ private:
     }
 
 public:
-    Parser(const string& code) : code(code) {}
+    Parser(const string& code) : code(code) {
+        advance();
+    }
 
     vector<Token> parse() {
         vector<Token> res;
@@ -550,25 +557,21 @@ public:
                     case ' ':
                     {
                         eat();
-                        size_t label = makeLabel();
-                        if (labels.find(label) != labels.end()) throw exception("Label already exists"); // check if already exists
+                        my_size_t label = makeLabel();
+                        if (labels.find(label) != labels.end()) throw runtime_error("Label already exists"); // check if already exists
                         labels[label] = res.size();
                     }
                         break;
                     case '\t':
                     {
                         eat();
-                        map<size_t, size_t>::iterator it = labels.find(makeLabel());
-                        if (it == labels.end()) throw exception("No such label exists");
-                        res.push_back(Token(control_call, it->second));
+                        res.push_back(Token(control_call, makeLabel()));
                     }
                         break;
                     case '\n':
                     {
                         eat();
-                        map<size_t, size_t>::iterator it = labels.find(makeLabel());
-                        if (it == labels.end()) throw exception("No such label exists");
-                        res.push_back(Token(control_jump, it->second));
+                        res.push_back(Token(control_jump, makeLabel()));
                     }
                         break;
                     default:
@@ -582,17 +585,13 @@ public:
                     case ' ':
                     {
                         eat();
-                        map<size_t, size_t>::iterator it = labels.find(makeLabel());
-                        if (it == labels.end()) throw exception("No such label exists");
-                        res.push_back(Token(control_jumpIfZero, it->second));
+                        res.push_back(Token(control_jumpIfZero, makeLabel()));
                     }
                         break;
                     case '\t':
                     {
                         eat();
-                        map<size_t, size_t>::iterator it = labels.find(makeLabel());
-                        if (it == labels.end()) throw exception("No such label exists");
-                        res.push_back(Token(control_jumpIfNegative, it->second));
+                        res.push_back(Token(control_jumpIfNegative, makeLabel()));
                     }
                         break;
                     case '\n':
@@ -625,6 +624,18 @@ public:
             }
         }
 
+        // Label postprocessing
+        for (Token& tok : res) {
+            if (tok.function == control_call ||
+                tok.function == control_jump ||
+                tok.function == control_jumpIfZero ||
+                tok.function == control_jumpIfNegative) {
+                map<my_size_t, my_size_t>::iterator it = labels.find(tok.value);
+                if (it == labels.end()) throw runtime_error("No such label exists");
+                tok.value = it->second;
+            }
+        }
+
         // should not reach, because programs should end with control_exit
         res.push_back(Token(unexpected_endOfProgram, 0));
         return res;
@@ -637,7 +648,7 @@ string whitespace(const string& code, string& inp) {
     Parser myparser(code);
     vector<Token> tokens = myparser.parse();
 
-    if (tokens.size() == 0) throw exception("Tokens are empty, meaning there was no end of program statement");
+    if (tokens.size() == 0) throw runtime_error("Tokens are empty, meaning there was no end of program statement");
 
     myReader.setInput(&inp);
 
@@ -651,5 +662,5 @@ string whitespace(const string& code, string& inp) {
         funcPtr(tok.value);
     }
 
-    throw exception("Programcode ended without control_exit");
+    throw runtime_error("Programcode ended without control_exit");
 }
