@@ -10,6 +10,10 @@ int main() {
     return 0;
 }
 
+/*6. Undefined Behavior in Labels and Flow Control
+Problem: Label definitions (makeLabel) and jump instructions assume labels are pre-defined in labels but this is not guaranteed.
+Fix: Process the labels during parsing and store them before evaluating instructions.*/
+
 // Memory alloc errors are handled by the map and vector class themselves
 
 map<int, int> heap;
@@ -51,10 +55,13 @@ string intToStr(int num) {
     return res;
 }
 
-const char* hexDigits = "0123456789ABCDEF";
 class Reader {
 public:
-    Reader(const string& inp) : inp(inp) {}
+    Reader() {}
+
+    void setInput(string* input) {
+        inp = input;
+    }
 
     int readNum() {
         if (current_char == '\0') throw exception("Runtime error: Input was empty when trieying to read number from it");
@@ -85,18 +92,20 @@ public:
     }
 
     char readChar() {
-        if (pos >= inp.length()) throw exception("Runtime error: input was empty when trying to read a character");
+        if (current_char == '\0') throw exception("Runtime error: input was empty when trying to read a character");
+        char ret = current_char;
         advance();
+        return ret;
     }
 private:
-    const string& inp;
+    string* inp;
     int pos = 0;
     char current_char;
 
     bool advance() {
         ++pos;
-        if (pos >= inp.length()) return true;
-        current_char = inp[pos];
+        if (pos >= inp->length()) return true;
+        current_char = (*inp)[pos];
         return false;
     }
 
@@ -123,10 +132,12 @@ private:
         case 'E': case 'e': return 14;
         case 'F': case 'f': return 15;
         default:
-            throw std::invalid_argument("Invalid hexadecimal character");
+            throw exception("Invalid hexadecimal character");
         }
     }
 };
+
+Reader myReader;
 
 // To help with debugging
 string unbleach(string s) {
@@ -258,14 +269,12 @@ void output_num(int) {
 }
 
 void input_char(int) {
-    //Reader myReader("aba");
     if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
     heap[pop()] = myReader.readChar();
     ++pc;
 }
 
 void input_num(int) {
-    //Reader myReader("aba");
     if (stack.size() < 1) throw exception("Runtime error: must have a values on stack to .......");
     heap[pop()] = myReader.readNum();
     ++pc;
@@ -273,11 +282,11 @@ void input_num(int) {
 
 // Flow Control
 void control_call(int label) {
+    callStack.push_back(pc);
     pc = label;
 }
 
 void control_jump(int label) {
-    callStack.push_back(pc);
     pc = label;
 }
 
@@ -623,22 +632,16 @@ public:
 };
 
 // Solution
-string whitespace(const string& code, const string& inp) {
+string whitespace(const string& code, string& inp) {
 
     Parser myparser(code);
     vector<Token> tokens = myparser.parse();
 
     if (tokens.size() == 0) throw exception("Tokens are empty, meaning there was no end of program statement");
 
-    // Interpreter
-    /*for (Token tok : tokens) {
-        void(*funcPtr)(int) = tok.function;
-        if (funcPtr == control_exit) {
-            return output;
-        }
-        funcPtr(tok.value);
-    }*/
+    myReader.setInput(&inp);
 
+    // Interpreter
     for (;;) {
         Token tok = tokens[pc];
         void(*funcPtr)(int) = tok.function;
