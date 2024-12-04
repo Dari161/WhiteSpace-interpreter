@@ -3,6 +3,7 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <cmath> // for floor
 
 // CodeWarson volt fent ez a feladat
 
@@ -207,10 +208,11 @@ void arith_mult() {
 
 void arith_div() {
     if (mystack.size() < 2) throw "Runtime error: must have 2 values on stack to divide them";
-    int a = pop();
-    int b = pop();
+    float a = (float)pop();
+    float b = (float)pop();
     if (a == 0) throw "Runtime error: division by 0";
-    mystack.push_back(b / a); // floor of the division
+    // mystack.push_back(b / a); // floor of the division
+    mystack.push_back(floor(b / a));
     ++pc;
 }
 
