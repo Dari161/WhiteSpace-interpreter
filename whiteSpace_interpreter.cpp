@@ -4,6 +4,8 @@
 #include <vector>
 #include <algorithm>
 
+// CodeWarson volt fent ez a feladat
+
 using namespace std;
 
 // Memory alloc errors are handled by the map and vector class themselves
@@ -23,6 +25,8 @@ int pop() {
 }
 
 size_t pc = 0; // program counter
+
+string input = "";
 
 // decimal
 string intToStr(int num) {
@@ -47,64 +51,11 @@ string intToStr(int num) {
     return res;
 }
 
+// invalid character may refer to '\0' (end of string)
+
 class Reader {
-public:
-    Reader() {}
-
-    void setInput(string* input) {
-        inp = input;
-        advance();
-    }
-
-    int readNum() {
-        if (current_char == '\0') throw runtime_error("Runtime error: Input was empty when trieying to read number from it");
-        if (current_char == '0') {
-            if (advance()) return 0;
-            if (current_char == '\n') return 0;
-            if (current_char == 'x') {
-                eat(); // eat 'x'
-                int num = 0;
-                while (current_char != '\n') {
-                    num *= 16;
-                    num += hexCharToInt(current_char);
-                    eat();
-                }
-                eat(); // eat '\n'
-                return num;
-            }
-        }
-
-        int num = 0;
-        while (current_char != '\n') {
-            num *= 10;
-            num += current_char - '0';
-            eat();
-        }
-        eat(); // eat '\n'
-        return num;
-    }
-
-    char readChar() {
-        if (current_char == '\0') throw runtime_error("Runtime error: input was empty when trying to read a character");
-        char ret = current_char;
-        advance();
-        return ret;
-    }
 private:
-    string* inp;
-    int pos = -1;
-    char current_char;
-
-    bool advance() {
-        ++pos;
-        if (pos >= inp->length()) return true;
-        current_char = (*inp)[pos];
-        return false;
-    }
-
-    void eat() {
-        if (advance()) throw runtime_error("Unexpected end of file");
-    }
+    size_t pos;
 
     int hexCharToInt(char hexChar) {
         switch (hexChar) {
@@ -125,41 +76,83 @@ private:
         case 'E': case 'e': return 14;
         case 'F': case 'f': return 15;
         default:
-            throw runtime_error("Invalid hexadecimal character");
+            throw "Runtime error: Invalid hexadecimal character";
         }
+    }
+public:
+    Reader() : pos(0) {}
+
+    // TODO: I think it should support minus numbers, and optionally binary and octal numeral system
+
+    int readNum() {
+        if (input[pos] == '\0') throw "Runtime error: Input was empty when trying to read number";
+        if (input[pos] == '0') {
+            ++pos;
+            if (input[pos] == '\n') {
+                ++pos;
+                return 0;
+            }
+            if (input[pos] == 'x') {
+                ++pos; // eat 'x'
+                int num = 0;
+                while (input[pos] != '\n') {
+                    num *= 16;
+                    num += hexCharToInt(input[pos]);
+                    ++pos;
+                }
+                ++pos; // eat '\n'
+                return num;
+            }
+            throw "Runtime error : Input contains unexpected character when trying to read number";
+        }
+        int num = 0;
+        while (input[pos] != '\n') {
+            num *= 10;
+            if (input[pos] < '0' || input[pos] > '9') throw "Runtime error: Invalid decimal character";
+            num += input[pos] - '0';
+            ++pos;
+        }
+        ++pos; // eat '\n'
+        return num;
+    }
+
+    char readChar() {
+        if (input[pos] == '\0') throw "Runtime error : input was empty when trying to read a character";
+        char ret = input[pos];
+        ++pos;
+        return ret;
+    }
+
+    void reset() {
+        pos = 0;
     }
 };
 
 Reader myReader;
 
-// To help with debugging
-string unbleach(string s) {
-    transform(s.begin(), s.end(), s.begin(), [](char c) { return (c == ' ') ? 's' : ((c == '\n') ? 'n' : 't'); });
-    return s;
-}
-
-class Token {
-public:
-    Token(void (*function)(int), int value) : function(function), value(value) {} // function's type is a pinter to a function, with void return type, and an argument with int type
-    void(*function)(int);
+struct Token {
+    // function's type is a pinter to a function, with void return type, and an argument with int type
+    void(*function)();
     int value;
 };
 
+int arg = 0;
+
 // Stack Manipulation
-void stack_push(int num) {
-    mystack.push_back(num);
+void stack_push() {
+    mystack.push_back(arg);
     ++pc;
 }
 
-void stack_duplicate(int num) {
-    if (num >= mystack.size()) throw runtime_error("Runtime error: range out of bounds");
-    mystack.push_back(mystack[mystack.size() - num - 1]); //////IDK
+void stack_duplicate() {
+    if (arg >= mystack.size()) throw "Runtime error: range out of bounds";
+    mystack.push_back(mystack[mystack.size() - arg - 1]); //////IDK
     ++pc;
 }
 
-void stack_discard(int num) {
-    if (num < 0 || num >= mystack.size()) { // remove everything but the top value
-        if (mystack.size() < 0) throw runtime_error("Runtime error : stack is empty");
+void stack_discard() {
+    if (arg < 0 || arg >= mystack.size()) { // remove everything but the top value
+        if (mystack.size() < 0) throw "Runtime error : stack is empty";
         int top = pop();
         mystack.clear();
         mystack.push_back(top);
@@ -167,7 +160,7 @@ void stack_discard(int num) {
     }
     int top = pop();
     // Resize the vector to remove the last n elements
-    mystack.resize(mystack.size() - num);
+    mystack.resize(mystack.size() - arg);
     /*for (int i = 0; i < num; ++i) {
         mystack.pop_back();
     }*/
@@ -175,437 +168,386 @@ void stack_discard(int num) {
     ++pc;
 }
 
-void stack_duplicateTop(int) {
+void stack_duplicateTop() {
     mystack.push_back(mystack[mystack.size() - 1]);
     ++pc;
 }
 
-void stack_swapTop(int) {
-    if (mystack.size() < 2) throw runtime_error("Runtime error: must have 2 values on stack to swap them");
+void stack_swapTop() {
+    if (mystack.size() < 2) throw "Runtime error: must have 2 values on stack to swap them";
     int tmp = mystack[mystack.size() - 1];
     mystack[mystack.size() - 1] = mystack[mystack.size() - 2];
     mystack[mystack.size() - 2] = tmp;
     ++pc;
 }
 
-void stack_discardTop(int) {
-    if (mystack.size() < 1) throw runtime_error("Runtime error: cant pop empty stack");
+void stack_discardTop() {
+    if (mystack.size() < 1) throw "Runtime error: cant pop empty stack";
     ++pc;
 }
 
 // Arithmetic
-void arith_add(int) {
-    if (mystack.size() < 2) throw runtime_error("Runtime error: must have 2 values on stack to add them");
+void arith_add() {
+    if (mystack.size() < 2) throw "Runtime error: must have 2 values on stack to add them";
     mystack.push_back(pop() + pop());
     ++pc;
 }
 
-void arith_sub(int) {
-    if (mystack.size() < 2) throw runtime_error("Runtime error: must have 2 values on stack to subtract them");
+void arith_sub() {
+    if (mystack.size() < 2) throw "Runtime error : must have 2 values on stack to subtract them";
     mystack.push_back(-pop() + pop());
     ++pc;
 }
 
-void arith_mult(int) {
-    if (mystack.size() < 2) throw runtime_error("Runtime error: must have 2 values on stack to multiply them");
+void arith_mult() {
+    if (mystack.size() < 2) throw "Runtime error: must have 2 values on stack to multiply them";
     mystack.push_back(pop() * pop());
     ++pc;
 }
 
-void arith_div(int) {
-    if (mystack.size() < 2) throw runtime_error("Runtime error: must have 2 values on stack to divide them");
+void arith_div() {
+    if (mystack.size() < 2) throw "Runtime error: must have 2 values on stack to divide them";
     int a = pop();
     int b = pop();
-    if (a == 0) throw runtime_error("Runtime error: division by 0");
+    if (a == 0) throw "Runtime error: division by 0";
     mystack.push_back(b / a); // floor of the division
     ++pc;
 }
 
-void arith_mod(int) {
-    if (mystack.size() < 2) throw runtime_error("Runtime error: must have 2 values on stack to modulo them");
+void arith_mod() {
+    if (mystack.size() < 2) throw "Runtime error: must have 2 values on stack to modulo them";
     int a = pop();
     int b = pop();
     int sign = a < 0 ? -1 : 1;
-    if (a == 0) throw runtime_error("Runtime error: modulo by 0");
+    if (a == 0) throw "Runtime error: modulo by 0";
     mystack.push_back((abs(b) % a) * sign);
     ++pc;
 }
 
 // Heap access
-void heap_set(int) {
-    if (mystack.size() < 2) throw runtime_error("Runtime error: must have 2 values on stack to ....... them");
+void heap_set() {
+    if (mystack.size() < 2) throw "Runtime error: must have 2 values on stack to ....... them";
     int a = pop();
     heap[pop()] = a;
     // in heap[pop()] = pop() the order of function evaluation would depend on the complier, since it is unspecified
     ++pc;
 }
 
-void heap_get(int) {
-    if (mystack.size() < 1) throw runtime_error("Runtime error: must have a values on stack to .......");
+void heap_get() {
+    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to .......";
     map<int, int>::iterator it = heap.find(pop());
-    if (it == heap.end()) throw runtime_error("Runtime error: No such adress in heap exists");
+    if (it == heap.end()) throw "Runtime error: No such adress in heap exists";
     mystack.push_back(it->second); // it->second is the value
     ++pc;
 }
 
 // Input/Output
-void output_char(int) {
-    if (mystack.size() < 1) throw runtime_error("Runtime error: must have a values on stack to .......");
+void output_char() {
+    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to .......";
     //output as char
     output += static_cast<char>(pop() % 256); // maybe % 256 is not needed
     ++pc;
 }
 
-void output_num(int) {
-    if (mystack.size() < 1) throw runtime_error("Runtime error: must have a values on stack to .......");
+void output_num() {
+    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to .......";
     //output as num
     output += intToStr(pop());
     ++pc;
 }
 
-void input_char(int) {
-    if (mystack.size() < 1) throw runtime_error("Runtime error: must have a values on stack to .......");
+void input_char() {
+    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to .......";
     heap[pop()] = myReader.readChar();
     ++pc;
 }
 
-void input_num(int) {
-    if (mystack.size() < 1) throw runtime_error("Runtime error: must have a values on stack to .......");
+void input_num() {
+    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to .......";
     heap[pop()] = myReader.readNum();
     ++pc;
 }
 
 // Flow Control
-void control_call(int label) {
+void control_call() {
     callStack.push_back(pc);
-    pc = label;
+    pc = arg;
 }
 
-void control_jump(int label) {
-    pc = label;
+void control_jump() {
+    pc = arg;
 }
 
-void control_jumpIfZero(int label) {
-    if (mystack.size() < 1) throw runtime_error("Runtime error: must have a values on stack to .......");
+void control_jumpIfZero() {
+    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to .......";
     if (pop() == 0) {
-        pc = label;
+        pc = arg;
     } else {
         ++pc;
     }
 }
 
-void control_jumpIfNegative(int label) {
-    if (mystack.size() < 1) throw runtime_error("Runtime error: must have a values on stack to .......");
+void control_jumpIfNegative() {
+    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to .......";
     if (pop() < 0) {
-        pc = label;
+        pc = arg;
     } else {
         ++pc;
     }
 }
 
-void control_return(int label) {
-    if (callStack.size() < 1) throw runtime_error("Runtime error: Cannot return, because callstack is empty");
+void control_return() {
+    if (callStack.size() < 1) throw "Runtime error: Cannot return, because callstack is empty";
     pc = callStack.back() + 1; // +1 because it should not call the subroutine again but progress forward
     callStack.pop_back();
 }
 
-void control_exit(int) {} // end program
+void control_exit() {} // end program
 
-void unexpected_endOfProgram(int) {
-    throw runtime_error("Programcode ended unexpectedly (without end of program statement)");
+void unexpected_endOfProgram() {
+    throw "Programcode ended unexpectedly (without end of program statement)";
 }
 
 // Lex and parse in one go
 class Parser {
 private:
     string code;
-    int pos = -1;
-    char current_char;
-
-    bool advance() {
-        do {
-            ++pos;
-            if (pos >= code.length()) return true;
-            current_char = code[pos];
-        } while (!(current_char == ' ' || current_char == '\t' || current_char == '\n'));
-        return false;
-    }
-
-    void eat() {
-        if (advance()) throw runtime_error("Unexpected end of file");
-    }
+    size_t pos;
 
     int makeNumber() {
         int sign;
-        switch (current_char) {
-        case '\t':
-            eat();
-            sign = -1;
-            break;
-        case ' ':
-            eat();
-            sign = 1;
-            break;
+        switch (code[pos]) {
+        case '\t': sign = -1; ++pos; break;
+        case ' ' : sign =  1; ++pos; break;
         default:
-            throw runtime_error("Expected a number. Numbers must start with tab or space");
+            throw "Expected a number. Numbers must start with tab or space";
         }
 
         int num = 0;
-        while (current_char != '\n') {
+        while (code[pos] != '\n') {
+            if (code[pos] == '\0') throw "Unexpected end of code";
             num *= 2;
-            num += (current_char == '\t'); // ch is either tab -> 1, or space -> 0
-            eat();
+            num += (code[pos] == '\t'); // ch is either tab -> 1, or space -> 0
+            ++pos;
         }
-        advance(); // advane past the newLine
+        ++pos; // advance past the newLine
         return sign * num;
     }
 
-    size_t makeLabel() {
+    int makeLabel() {
         size_t num = 0;
-        while (current_char != '\n') {
-            eat();
-
+        while (code[pos] != '\n') {
+            if (code[pos] == '\0') throw "Unexpected end of code";
             num *= 2;
-            num += (current_char == '\t'); // ch is either tab -> 1, or space -> 0
+            num += (code[pos] == '\t'); // ch is either tab -> 1, or space -> 0
+            ++pos;
         }
-        advance(); // advane past the newLine
+        ++pos; // advance past the newLine
 
         return num;
     }
 
 public:
-    Parser(const string& code) : code(code) {
-        advance();
-    }
+    Parser(const string& code_) : code(code_), pos(0) {}
 
     vector<Token> parse() {
         vector<Token> res;
-        while (current_char != '\0') {
-            switch (current_char) {
+        while (code[pos] != '\0') {
+            switch (code[pos]) {
             case ' ':
                 // Stack manipulation
-                eat();
-                switch (current_char) {
+                ++pos;
+                switch (code[pos]) {
                 case ' ':
-                    eat();
-                    res.push_back(Token(stack_push, makeNumber()));
+                    ++pos;
+                    res.push_back(Token{ stack_push, makeNumber() });
                     break;
                 case '\t':
-                    eat();
-                    switch (current_char) {
+                    ++pos;
+                    switch (code[pos]) {
                     case ' ':
-                        eat();
-                        res.push_back(Token(stack_duplicate, makeNumber()));
+                        ++pos;
+                        res.push_back(Token{ stack_duplicate, makeNumber() });
                         break;
                     case '\n':
-                        eat();
-                        res.push_back(Token(stack_discard, makeNumber()));
+                        ++pos;
+                        res.push_back(Token{ stack_discard, makeNumber() });
                         break;
                     default:
-                        throw exception();
+                        throw "unexpected character";
                     }
                 case '\n':
-                    eat();
-                    switch (current_char) {
+                    ++pos;
+                    switch (code[pos]) {
                     case ' ':
-                        advance();
-                        res.push_back(Token(stack_duplicateTop, 0));
-                        break;
+                        res.push_back(Token{ stack_duplicateTop, 0 });
+                        ++pos; break;
                     case '\t':
-                        advance();
-                        res.push_back(Token(stack_swapTop, 0));
-                        break;
+                        res.push_back(Token{ stack_swapTop, 0 });
+                        ++pos; break;
                     case '\n':
-                        advance();
-                        res.push_back(Token(stack_discardTop, 0));
-                        break;
+                        res.push_back(Token{ stack_discardTop, 0 });
+                        ++pos; break;
                     default:
-                        // unreachable
-                        throw exception();
+                        throw "unexpected character";
                     }
                 default:
-                    // unreachable
-                    throw exception();
+                    throw "unexpected character";
                 }
                 break;
             case '\t':
-                eat();
-                switch (current_char) {
+                ++pos;
+                switch (code[pos]) {
                 case ' ':
                     // Arithmetic
-                    eat();
-                    switch (current_char) {
+                    ++pos;
+                    switch (code[pos]) {
                     case ' ':
-                        eat();
-                        switch (current_char) {
+                        ++pos;
+                        switch (code[pos]) {
                         case ' ':
-                            advance();
-                            res.push_back(Token(arith_add, 0));
-                            break;
+                            res.push_back(Token{ arith_add, 0 });
+                            ++pos; break;
                         case '\t':
-                            advance();
-                            res.push_back(Token(arith_sub, 0));
-                            break;
+                            res.push_back(Token{ arith_sub, 0 });
+                            ++pos; break;
                         case '\n':
-                            advance();
-                            res.push_back(Token(arith_mult, 0));
-                            break;
+                            res.push_back(Token{ arith_mult, 0 });
+                            ++pos; break;
                         default:
-                            // unreachable
-                            throw exception();
+                            throw "unexpected character";
                         }
                         break;
                     case '\t':
-                        eat();
-                        switch (current_char) {
+                        ++pos;
+                        switch (code[pos]) {
                         case ' ':
-                            advance();
-                            res.push_back(Token(arith_div, 0));
-                            break;
+                            res.push_back(Token{ arith_div, 0 });
+                            ++pos; break;
                         case '\t':
-                            advance();
-                            res.push_back(Token(arith_mod, 0));
-                            break;
+                            res.push_back(Token{ arith_mod, 0 });
+                            ++pos; break;
                         default:
-                            throw exception();
+                            throw "unexpected character";
                         }
                         break;
                     default:
-                        throw exception();
+                        throw "unexpected character";
                     }
                     break;
                 case '\t':
                     // Heap Access
-                    eat();
-                    switch (current_char) {
+                    ++pos;
+                    switch (code[pos]) {
                     case ' ':
-                        advance();
-                        res.push_back(Token(heap_set, 0));
-                        break;
+                        res.push_back(Token{ heap_set, 0 });
+                        ++pos; break;
                     case '\t':
-                        advance();
-                        res.push_back(Token(heap_get, 0));
-                        break;
+                        res.push_back(Token{ heap_get, 0 });
+                        ++pos; break;
                     default:
-                        throw exception();
+                        throw "unexpected character";
                     }
                     break;
                 case '\n':
                     // Input/Output
-                    eat();
-                    switch (current_char) {
+                    ++pos;
+                    switch (code[pos]) {
                     case ' ':
-                        eat();
-                        switch (current_char) {
+                        ++pos;
+                        switch (code[pos]) {
                         case ' ':
-                            advance();
-                            res.push_back(Token(output_char, 0));
-                            break;
+                            res.push_back(Token{ output_char, 0 });
+                            ++pos; break;
                         case '\t':
-                            advance();
-                            res.push_back(Token(output_num, 0));
-                            break;
+                            res.push_back(Token{ output_num, 0 });
+                            ++pos; break;
                         default:
-                            throw exception();
+                            throw "unexpected character";
                         }
                         break;
                     case '\t':
-                        eat();
-                        switch (current_char) {
+                        ++pos;
+                        switch (code[pos]) {
                         case ' ':
-                            advance();
-                            res.push_back(Token(input_char, 0));
-                            break;
+                            res.push_back(Token{ input_char, 0 });
+                            ++pos; break;
                         case '\t':
-                            advance();
-                            res.push_back(Token(input_num, 0));
-                            break;
+                            res.push_back(Token{ input_num, 0 });
+                            ++pos; break;
                         default:
-                            throw exception();
+                            throw "unexpected character";
                         }
                         break;
                     default:
-                        throw exception();
+                        throw "unexpected character";
                     }
                     break;
                 default:
-                    throw exception();
+                    throw "unexpected character";
                 }
                 break;
             case '\n':
                 // Flow-Control
-                eat();
-                switch (current_char) {
+                ++pos;
+                switch (code[pos]) {
                 case ' ':
-                    eat();
-                    switch (current_char) {
+                    ++pos;
+                    switch (code[pos]) {
                     case ' ':
+                        ++pos;
                     {
-                        eat();
                         size_t label = makeLabel();
-                        if (labels.find(label) != labels.end()) throw runtime_error("Label already exists"); // check if already exists
+                        if (labels.find(label) != labels.end()) throw "Label already exists"; // check if already exists
                         labels[label] = res.size();
                     }
                         break;
                     case '\t':
-                    {
-                        eat();
-                        res.push_back(Token(control_call, makeLabel()));
-                    }
+                        ++pos;
+                        res.push_back(Token{ control_call, makeLabel() });
                         break;
                     case '\n':
-                    {
-                        eat();
-                        res.push_back(Token(control_jump, makeLabel()));
-                    }
+                        ++pos;
+                        res.push_back(Token{ control_jump, makeLabel() });
                         break;
                     default:
-                        // unreachable
-                        throw exception();
+                        throw "unexpected character";
                     }
                     break;
                 case '\t':
-                    eat();
-                    switch (current_char) {
+                    ++pos;
+                    switch (code[pos]) {
                     case ' ':
-                    {
-                        eat();
-                        res.push_back(Token(control_jumpIfZero, makeLabel()));
-                    }
+                        ++pos;
+                        res.push_back(Token{ control_jumpIfZero, makeLabel() });
                         break;
                     case '\t':
-                    {
-                        eat();
-                        res.push_back(Token(control_jumpIfNegative, makeLabel()));
-                    }
+                        ++pos;
+                        res.push_back(Token{ control_jumpIfNegative, makeLabel() });
                         break;
                     case '\n':
-                        eat();
-                        res.push_back(Token(control_return, 0));
-                        break;
+                        res.push_back(Token{ control_return, 0 });
+                        ++pos; break;
                     default:
-                        // unreachable
-                        throw exception();
+                        throw "unexpected character";
                     }
                     break;
                 case '\n':
-                    eat();
-                    switch (current_char) {
+                    ++pos;
+                    switch (code[pos]) {
                     case '\n':
-                        advance();
-                        res.push_back(Token(control_exit, 0));
-                        break;
+                        res.push_back(Token{ control_exit, 0 });
+                        ++pos; break;
                     default:
-                        throw exception();
+                        throw "unexpected character";
                     }
                     break;
                 default:
-                    // unreachable
-                    throw exception();
+                    throw "unexpected character";
                 }
                 break;
             default:
-                throw exception();
+                throw "unexpected character";
             }
 
             if (pos >= code.size() - 1) break;
@@ -619,13 +561,13 @@ public:
                 tok.function == control_jumpIfZero ||
                 tok.function == control_jumpIfNegative) {
                 map<size_t, size_t>::iterator it = labels.find(tok.value);
-                if (it == labels.end()) throw runtime_error("No such label exists");
+                if (it == labels.end()) throw "No such label exists";
                 tok.value = it->second;
             }
         }
 
         // should not reach, because programs should end with control_exit
-        res.push_back(Token(unexpected_endOfProgram, 0));
+        res.push_back(Token{ unexpected_endOfProgram, 0 });
         return res;
     }
 };
@@ -633,36 +575,85 @@ public:
 // Solution
 string whitespace(const string& code, const string& inp = string()) {
 
-    Parser myparser(code);
+
+    mystack.clear();
+    heap.clear();
+    callStack.clear();
+    labels.clear();
+    output = "";
+    pc = 0;
+    myReader.reset();
+
+    // strip everything but the 3 whitespaces
+    string code2 = "";
+    for (const char ch : code) {
+        if (ch == ' ' || ch == '\t' || ch == '\n') {
+            code2 += ch;
+        }
+    }
+
+    Parser myparser(code2);
     vector<Token> tokens = myparser.parse();
 
-    if (tokens.size() == 0) throw runtime_error("Tokens are empty, meaning there was no end of program statement");
-
-    string s = inp;
-
-    myReader.setInput(&s);
+    input = inp;
 
     // Interpreter
     for (;;) {
         Token tok = tokens[pc];
-        void(*funcPtr)(int) = tok.function;
+        void(*funcPtr)() = tok.function;
         if (funcPtr == control_exit) { // it needs to be in every correct program, if there is none the loop will break, beacuse the unexpected_endOfProgram function would be called resulting in throwing an error
             return output;
         }
-        funcPtr(tok.value);
+        arg = tok.value;
+        funcPtr();
     }
 
-    throw runtime_error("Programcode ended without control_exit");
+    throw "Programcode ended without control_exit";
 }
-
-#include <fstream>
 
 int main() {
     // Tests
 
-    whitespace("")
+    // test Reader
 
-    cout << whitespace("   \t      \t \n   \t\t\t \t\t   \t\t  \t \n    \n\t\t    \t  \t   \n\t\n     \t\t  \t \t\n\t\n     \t\t \t\t  \n \n \t\n  \t\n     \t\t \t\t\t\t\n\t\n     \t     \n\t\n     \t \t \t\t\t\n\t\n     \t\t \t\t\t\t\n\t\n     \t\t\t  \t \n\t\n     \t\t \t\t  \n\t\n     \t\t  \t  \n\t\n     \t    \t\n\t\n     \t \t \n\t\n   !", "");
+    //tes1
+    /*input = "asd";
+    cout << myReader.readChar();
+    cout << myReader.readChar();
+    cout << myReader.readChar();
+    cout << myReader.readChar();*/
+
+    //test2
+    /*input = "12\nads0xAB1\n32";
+    cout << myReader.readNum();
+    //cout << myReader.readNum();
+    cout << myReader.readChar();
+    cout << myReader.readChar();
+    cout << myReader.readChar();
+    //cout << myReader.readChar();
+    cout << myReader.readNum();
+    //cout << myReader.readNum();
+    cout << myReader.readChar();
+    cout << myReader.readChar();*/
+
+    //test3
+    /*input = "0x77";
+    //cout << myReader.readNum();*/
+
+    // test makeNumber
+    //cout << whitespace("push  num \t\t\t \noutputNum\t\n \tend\n\n\n");
+    //cout << whitespace("push  num\t\t \t \noutputNum\t\n \tend\n\n\n");
+    cout << whitespace("   \t\n\t\n \t\n\n\n");
+    cout << whitespace("   \t \n\t\n \t\n\n\n");
+    cout << whitespace("   \t\t\n\t\n \t\n\n\n");
+    cout << whitespace("    \n\t\n \t\n\n\n");
+
+    // test makeLabel
+    //cout << whitespace("push  num   \npush  num\t\t\t\njump\n \nlabel \t\t\noutputNum\t\n \tMarkWithLabel\n  label \t\t\noutputNum\t\n \tend\n\n\n");
+
+
+
+    //cout << whitespace("   \t      \t \n   \t\t\t \t\t   \t\t  \t \n    \n\t\t    \t  \t   \n\t\n     \t\t  \t \t\n\t\n     \t\t \t\t  \n \n \t\n  \t\n     \t\t \t\t\t\t\n\t\n     \t     \n\t\n     \t \t \t\t\t\n\t\n     \t\t \t\t\t\t\n\t\n     \t\t\t  \t \n\t\n     \t\t \t\t  \n\t\n     \t\t  \t  \n\t\n     \t    \t\n\t\n     \t \t \n\t\n   !", "");
 
     return 0;
 }
