@@ -4,8 +4,6 @@
 #include <vector>
 #include <cmath> // for floor()
 
-// CodeWarson volt fent ez a feladat
-
 using namespace std;
 
 // Memory alloc errors are handled by the map and vector class themselves
