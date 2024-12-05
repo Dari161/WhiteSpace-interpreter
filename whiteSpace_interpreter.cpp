@@ -352,8 +352,13 @@ private:
         size_t num = 0;
         while (code[pos] != '\n') {
             if (code[pos] == '\0') throw "Unexpected end of code";
-            num *= 2;
-            num += (code[pos] == '\t'); // ch is either tab -> 1, or space -> 0
+            // This cannot be a binary representation of table like in makeNumber, since "" and " " are different labels, but in binary, is space is zero they would be equal
+            // so I used a base 3 numeral system, where tab is 2 and space is 1
+            num *= 3;
+            switch (code[pos]) {
+            case '\t': num += 2; break;
+            case ' ' : num += 1; break;
+            }
             ++pos;
         }
         ++pos; // advance past the newLine
