@@ -378,6 +378,7 @@ public:
                     default:
                         throw "unexpected character";
                     }
+                    break;
                 case '\n':
                     ++pos;
                     switch (code[pos]) {
@@ -393,6 +394,7 @@ public:
                     default:
                         throw "unexpected character";
                     }
+                    break;
                 default:
                     throw "unexpected character";
                 }
@@ -552,7 +554,7 @@ public:
                 throw "unexpected character";
             }
 
-            if (pos >= code.size() - 1) break;
+            if (pos >= code.size() - 1) break; // IDK if needed
 
         }
 
@@ -783,6 +785,8 @@ int main() {
     // push and output test from Codewars
     cout << whitespace("   \t\t\n   \t\t\t\n\t\n \t\t\n \t\n\n\n");
     cout << whitespace("   \t\t\n   \t\t\n\t\n \t\t\n \t\n\n\n");
+    cout << whitespace("   \t\t\n   \t\t\n\t\n \t\t\n \t\n\n\n");
+    cout << whitespace("   \t\t\n \n \t\n \t\t\n \t\n\n\n");
 
     //cout << whitespace("   \t      \t \n   \t\t\t \t\t   \t\t  \t \n    \n\t\t    \t  \t   \n\t\n     \t\t  \t \t\n\t\n     \t\t \t\t  \n \n \t\n  \t\n     \t\t \t\t\t\t\n\t\n     \t     \n\t\n     \t \t \t\t\t\n\t\n     \t\t \t\t\t\t\n\t\n     \t\t\t  \t \n\t\n     \t\t \t\t  \n\t\n     \t\t  \t  \n\t\n     \t    \t\n\t\n     \t \t \n\t\n   !", "");
 
