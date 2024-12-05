@@ -574,6 +574,123 @@ public:
     }
 };
 
+void printTokens(vector<Token> tokens) {
+    for (Token tok : tokens) {
+        if (tok.function == stack_push) {
+            cout << "stack_push";
+        }
+        else if (tok.function == stack_duplicate) {
+            cout << "stack_duplicate";
+        }
+        else if (tok.function == stack_discard) {
+            cout << "stack_discard";
+        }
+        else if (tok.function == stack_duplicateTop) {
+            cout << "stack_duplicateTop";
+        }
+        else if (tok.function == stack_swapTop) {
+            cout << "stack_swapTop";
+        }
+        else if (tok.function == stack_discardTop) {
+            cout << "stack_discardTop";
+        }
+        else if (tok.function == arith_add) {
+            cout << "arith_add";
+        }
+        else if (tok.function == arith_sub) {
+            cout << "arith_sub";
+        }
+        else if (tok.function == arith_mult) {
+            cout << "arith_mult";
+        }
+        else if (tok.function == arith_div) {
+            cout << "arith_div";
+        }
+        else if (tok.function == arith_mod) {
+            cout << "arith_mod";
+        }
+        else if (tok.function == heap_set) {
+            cout << "heap_set";
+        }
+        else if (tok.function == heap_get) {
+            cout << "heap_get";
+        }
+        else if (tok.function == output_char) {
+            cout << "output_char";
+        }
+        else if (tok.function == output_num) {
+            cout << "output_num";
+        }
+        else if (tok.function == input_char) {
+            cout << "input_char";
+        }
+        else if (tok.function == input_num) {
+            cout << "input_num";
+        }
+        else if (tok.function == control_call) {
+            cout << "control_call";
+        }
+        else if (tok.function == control_jump) {
+            cout << "control_jump";
+        }
+        else if (tok.function == control_jumpIfZero) {
+            cout << "control_jumpIfZero";
+        }
+        else if (tok.function == control_jumpIfNegative) {
+            cout << "control_jumpIfNegative";
+        }
+        else if (tok.function == control_return) {
+            cout << "control_return";
+        }
+        else if (tok.function == control_exit) {
+            cout << "control_exit";
+        }
+        else if (tok.function == unexpected_endOfProgram) {
+            cout << "unexpected_endOfProgram";
+        }
+        else {
+            cout << "Unexpected token";
+            throw "Unexpected token";
+        }
+        cout << " " << tok.value << endl;
+    }
+}
+
+void printCode(string code) {
+    bool readableFormat = true;
+
+    cout << "code: <";
+    if (readableFormat) {
+        for (char ch : code) {
+            switch (ch) {
+            case '\t':
+                cout << "t";
+                break;
+            case '\n':
+                cout << "n";
+                break;
+            case ' ':
+                cout << "s";
+            }
+        }
+    }
+    else {
+        for (char ch : code) {
+            switch (ch) {
+            case '\t':
+                cout << "\\t";
+                break;
+            case '\n':
+                cout << "\\n";
+                break;
+            case ' ':
+                cout << " ";
+            }
+        }
+    }
+    cout << ">" << endl;
+}
+
 // Solution
 string whitespace(const string& code, const string& inp = string()) {
 
@@ -586,6 +703,12 @@ string whitespace(const string& code, const string& inp = string()) {
     pc = 0;
     myReader.reset();
 
+    mystack = vector<int>();
+    heap = map<int, int>();
+    callStack = vector<size_t>();
+    labels = map<size_t, size_t>();
+    myReader = Reader();
+
     // strip everything but the 3 whitespaces
     string code2 = "";
     for (const char ch : code) {
@@ -596,6 +719,9 @@ string whitespace(const string& code, const string& inp = string()) {
 
     Parser myparser(code2);
     vector<Token> tokens = myparser.parse();
+
+    printCode(code2);
+    printTokens(tokens);
 
     input = inp;
 
@@ -645,15 +771,18 @@ int main() {
     // test makeNumber
     //cout << whitespace("push  num \t\t\t \noutputNum\t\n \tend\n\n\n");
     //cout << whitespace("push  num\t\t \t \noutputNum\t\n \tend\n\n\n");
-    cout << whitespace("   \t\n\t\n \t\n\n\n");
+
+    /*cout << whitespace("   \t\n\t\n \t\n\n\n");
     cout << whitespace("   \t \n\t\n \t\n\n\n");
     cout << whitespace("   \t\t\n\t\n \t\n\n\n");
-    cout << whitespace("    \n\t\n \t\n\n\n");
+    cout << whitespace("    \n\t\n \t\n\n\n");*/
 
     // test makeLabel
     //cout << whitespace("push  num   \npush  num\t\t\t\njump\n \nlabel \t\t\noutputNum\t\n \tMarkWithLabel\n  label \t\t\noutputNum\t\n \tend\n\n\n");
 
-
+    // push and output test from Codewars
+    cout << whitespace("   \t\t\n   \t\t\t\n\t\n \t\t\n \t\n\n\n");
+    cout << whitespace("   \t\t\n   \t\t\n\t\n \t\t\n \t\n\n\n");
 
     //cout << whitespace("   \t      \t \n   \t\t\t \t\t   \t\t  \t \n    \n\t\t    \t  \t   \n\t\n     \t\t  \t \t\n\t\n     \t\t \t\t  \n \n \t\n  \t\n     \t\t \t\t\t\t\n\t\n     \t     \n\t\n     \t \t \t\t\t\n\t\n     \t\t \t\t\t\t\n\t\n     \t\t\t  \t \n\t\n     \t\t \t\t  \n\t\n     \t\t  \t  \n\t\n     \t    \t\n\t\n     \t \t \n\t\n   !", "");
 
