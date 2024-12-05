@@ -157,6 +157,7 @@ void stack_discard() {
         int top = pop();
         mystack.clear();
         mystack.push_back(top);
+        ++pc;
         return;
     }
     int top = pop();
@@ -170,6 +171,7 @@ void stack_discard() {
 }
 
 void stack_duplicateTop() {
+    if (mystack.size() < 1) throw "Runtime error: cant duplicate top on empty stack";
     mystack.push_back(mystack[mystack.size() - 1]);
     ++pc;
 }
@@ -184,6 +186,9 @@ void stack_swapTop() {
 
 void stack_discardTop() {
     if (mystack.size() < 1) throw "Runtime error: cant pop empty stack";
+
+    mystack.pop_back();
+
     ++pc;
 }
 
@@ -222,7 +227,14 @@ void arith_mod() {
     int b = pop();
     int sign = a < 0 ? -1 : 1;
     if (a == 0) throw "Runtime error: modulo by 0";
-    mystack.push_back((abs(b) % a) * sign);
+
+    // TODO undertanding this
+    int mod = b % a;
+    if ((mod > 0 && a < 0) || (mod < 0 && a > 0)) {
+        mod += a; // Adjust to match the sign of the divisor
+    }
+
+    mystack.push_back(mod);
     ++pc;
 }
 
@@ -720,9 +732,9 @@ string whitespace(const string& code, const string& inp = string()) {
     }
 
     Parser myparser(code2);
-    vector<Token> tokens = myparser.parse();
-
     printCode(code2);
+
+    vector<Token> tokens = myparser.parse();
     printTokens(tokens);
 
     input = inp;
@@ -783,10 +795,25 @@ int main() {
     //cout << whitespace("push  num   \npush  num\t\t\t\njump\n \nlabel \t\t\noutputNum\t\n \tMarkWithLabel\n  label \t\t\noutputNum\t\n \tend\n\n\n");
 
     // push and output test from Codewars
-    cout << whitespace("   \t\t\n   \t\t\t\n\t\n \t\t\n \t\n\n\n");
+    /*cout << whitespace("   \t\t\n   \t\t\t\n\t\n \t\t\n \t\n\n\n");
     cout << whitespace("   \t\t\n   \t\t\n\t\n \t\t\n \t\n\n\n");
     cout << whitespace("   \t\t\n   \t\t\n\t\n \t\t\n \t\n\n\n");
     cout << whitespace("   \t\t\n \n \t\n \t\t\n \t\n\n\n");
+
+    cout << endl << endl;
+
+    cout << whitespace("   \t\t\n   \t \n \n\t \n\n\t\n \t\n\n\n");
+
+    cout << endl << endl;
+
+    cout << whitespace("   \t\n   \t \n   \t\t\n \t\n\t\t     \n\t\n \t\n\n\n");*/
+
+    // test arithmetic mod
+
+    //cout << whitespace("   \t \t\n  \t\t\t\n\t \t\t\t\n \t\n\n\n");
+
+    // Testing_conditional_and_unconditional_jump_functionality
+    cout << whitespace("   \n   \t\n   \t \n   \t\t\n\n  \n\t\n \t \n \n\t  \n\n \n\n\n   \n\n\n\n");
 
     //cout << whitespace("   \t      \t \n   \t\t\t \t\t   \t\t  \t \n    \n\t\t    \t  \t   \n\t\n     \t\t  \t \t\n\t\n     \t\t \t\t  \n \n \t\n  \t\n     \t\t \t\t\t\t\n\t\n     \t     \n\t\n     \t \t \t\t\t\n\t\n     \t\t \t\t\t\t\n\t\n     \t\t\t  \t \n\t\n     \t\t \t\t  \n\t\n     \t\t  \t  \n\t\n     \t    \t\n\t\n     \t \t \n\t\n   !", "");
 
