@@ -2,8 +2,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
-#include <algorithm>
-#include <cmath> // for floor
+#include <cmath> // for floor()
 
 // CodeWarson volt fent ez a feladat
 
@@ -19,6 +18,7 @@ map<size_t, size_t> labels;
 
 string output = "";
 
+// helper function to get the value of the last element of mystack and remove it from mystack
 int pop() {
     int res = mystack.back();
     mystack.pop_back();
@@ -58,7 +58,7 @@ class Reader {
 private:
     size_t pos;
 
-    int hexCharToInt(char hexChar) {
+    const int hexCharToInt(const char hexChar) const {
         switch (hexChar) {
         case '0': return 0;
         case '1': return 1;
@@ -83,9 +83,9 @@ private:
 public:
     Reader() : pos(0) {}
 
-    // TODO: I think it should support minus numbers, and optionally binary and octal numeral system
+    // Note: It does not support minus numbers, nor binary- or octal numeral system
 
-    int readNum() {
+    const int readNum() {
         if (input[pos] == '\0') throw "Runtime error: Input was empty when trying to read number";
         if (input[pos] == '0') {
             ++pos;
@@ -117,7 +117,7 @@ public:
         return num;
     }
 
-    char readChar() {
+    const char readChar() {
         if (input[pos] == '\0') throw "Runtime error : input was empty when trying to read a character";
         char ret = input[pos];
         ++pos;
@@ -132,7 +132,7 @@ public:
 Reader myReader;
 
 struct Token {
-    // function's type is a pinter to a function, with void return type, and an argument with int type
+    // function's type is a pointer to a function, with void return type, and no argument
     void(*function)();
     int value;
 };
@@ -147,13 +147,13 @@ void stack_push() {
 
 void stack_duplicate() {
     if (arg >= mystack.size()) throw "Runtime error: range out of bounds";
-    mystack.push_back(mystack[mystack.size() - arg - 1]); //////IDK
+    mystack.push_back(mystack[mystack.size() - arg - 1]);
     ++pc;
 }
 
 void stack_discard() {
     if (arg < 0 || arg >= mystack.size()) { // remove everything but the top value
-        if (mystack.size() < 0) throw "Runtime error : stack is empty";
+        if (mystack.size() < 0) throw "Runtime error: stack is empty";
         int top = pop();
         mystack.clear();
         mystack.push_back(top);
@@ -163,15 +163,12 @@ void stack_discard() {
     int top = pop();
     // Resize the vector to remove the last n elements
     mystack.resize(mystack.size() - arg);
-    /*for (int i = 0; i < num; ++i) {
-        mystack.pop_back();
-    }*/
     mystack.push_back(top);
     ++pc;
 }
 
 void stack_duplicateTop() {
-    if (mystack.size() < 1) throw "Runtime error: cant duplicate top on empty stack";
+    if (mystack.size() < 1) throw "Runtime error: cant duplicate top of empty stack";
     mystack.push_back(mystack[mystack.size() - 1]);
     ++pc;
 }
@@ -185,7 +182,7 @@ void stack_swapTop() {
 }
 
 void stack_discardTop() {
-    if (mystack.size() < 1) throw "Runtime error: cant pop empty stack";
+    if (mystack.size() < 1) throw "Runtime error: can't discard top of empty stack";
 
     mystack.pop_back();
 
@@ -216,8 +213,7 @@ void arith_div() {
     float a = (float)pop();
     float b = (float)pop();
     if (a == 0) throw "Runtime error: division by 0";
-    // mystack.push_back(b / a); // floor of the division
-    mystack.push_back(floor(b / a));
+    mystack.push_back(floor(b / a)); // floor is needed so division can floor-division can wrok for negatives too
     ++pc;
 }
 
@@ -225,13 +221,12 @@ void arith_mod() {
     if (mystack.size() < 2) throw "Runtime error: must have 2 values on stack to modulo them";
     int a = pop();
     int b = pop();
-    int sign = a < 0 ? -1 : 1;
     if (a == 0) throw "Runtime error: modulo by 0";
 
-    // TODO undertanding this
-    int mod = b % a;
+    int mod = b % a; // mod always gets the sign of b
+    // 5 mod -3 should be -1
     if ((mod > 0 && a < 0) || (mod < 0 && a > 0)) {
-        mod += a; // Adjust to match the sign of the divisor
+        mod += a;
     }
 
     mystack.push_back(mod);
@@ -240,15 +235,15 @@ void arith_mod() {
 
 // Heap access
 void heap_set() {
-    if (mystack.size() < 2) throw "Runtime error: must have 2 values on stack to ....... them";
+    if (mystack.size() < 2) throw "Runtime error: must have 2 values on stack to pop them";
     int a = pop();
     heap[pop()] = a;
-    // in heap[pop()] = pop() the order of function evaluation would depend on the complier, since it is unspecified
+    // in "heap[pop()] = pop()" the order of function evaluation is unspecified, meaning it depends on the complier
     ++pc;
 }
 
 void heap_get() {
-    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to .......";
+    if (mystack.size() < 1) throw "Runtime error: must have 2 values on stack to pop them";
     map<int, int>::iterator it = heap.find(pop());
     if (it == heap.end()) throw "Runtime error: No such adress in heap exists";
     mystack.push_back(it->second); // it->second is the value
@@ -257,27 +252,27 @@ void heap_get() {
 
 // Input/Output
 void output_char() {
-    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to .......";
+    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to output it as a char";
     //output as char
-    output += static_cast<char>(pop() % 256); // maybe % 256 is not needed
+    output += static_cast<char>(pop() % 256);
     ++pc;
 }
 
 void output_num() {
-    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to .......";
+    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to output it as a number";
     //output as num
     output += intToStr(pop());
     ++pc;
 }
 
 void input_char() {
-    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to .......";
+    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to pop it";
     heap[pop()] = myReader.readChar();
     ++pc;
 }
 
 void input_num() {
-    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to .......";
+    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to pop it";
     heap[pop()] = myReader.readNum();
     ++pc;
 }
@@ -293,7 +288,7 @@ void control_jump() {
 }
 
 void control_jumpIfZero() {
-    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to .......";
+    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to test if it is zero";
     if (pop() == 0) {
         pc = arg;
     } else {
@@ -302,7 +297,7 @@ void control_jumpIfZero() {
 }
 
 void control_jumpIfNegative() {
-    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to .......";
+    if (mystack.size() < 1) throw "Runtime error: must have a values on stack to test if it is negative";
     if (pop() < 0) {
         pc = arg;
     } else {
@@ -311,15 +306,15 @@ void control_jumpIfNegative() {
 }
 
 void control_return() {
-    if (callStack.size() < 1) throw "Runtime error: Cannot return, because callstack is empty";
-    pc = callStack.back() + 1; // +1 because it should not call the subroutine again but progress forward
+    if (callStack.size() < 1) throw "Runtime error: Cannot return, because callstack is empty (no place to return to)";
+    pc = callStack.back() + 1; // + 1, because it should not call the subroutine again but the instruction after it
     callStack.pop_back();
 }
 
 void control_exit() {} // end program
 
 void unexpected_endOfProgram() {
-    throw "Programcode ended unexpectedly (without end of program statement)";
+    throw "Runtime error: programcode ended unexpectedly (without control_exit statement)";
 }
 
 // Lex and parse in one go
@@ -328,7 +323,7 @@ private:
     string code;
     size_t pos;
 
-    int makeNumber() {
+    const int makeNumber() {
         int sign;
         switch (code[pos]) {
         case '\t': sign = -1; ++pos; break;
@@ -348,7 +343,7 @@ private:
         return sign * num;
     }
 
-    int makeLabel() {
+    const int makeLabel() {
         size_t num = 0;
         while (code[pos] != '\n') {
             if (code[pos] == '\0') throw "Unexpected end of code";
@@ -369,7 +364,7 @@ private:
 public:
     Parser(const string& code_) : code(code_), pos(0) {}
 
-    vector<Token> parse() {
+    const vector<Token> parse() {
         vector<Token> res;
         while (code[pos] != '\0') {
             switch (code[pos]) {
@@ -393,7 +388,7 @@ public:
                         res.push_back(Token{ stack_discard, makeNumber() });
                         break;
                     default:
-                        throw "unexpected character";
+                        throw "Unexpected character";
                     }
                     break;
                 case '\n':
@@ -409,11 +404,11 @@ public:
                         res.push_back(Token{ stack_discardTop, 0 });
                         ++pos; break;
                     default:
-                        throw "unexpected character";
+                        throw "Unexpected character";
                     }
                     break;
                 default:
-                    throw "unexpected character";
+                    throw "Unexpected character";
                 }
                 break;
             case '\t':
@@ -436,7 +431,7 @@ public:
                             res.push_back(Token{ arith_mult, 0 });
                             ++pos; break;
                         default:
-                            throw "unexpected character";
+                            throw "Unexpected character";
                         }
                         break;
                     case '\t':
@@ -449,11 +444,11 @@ public:
                             res.push_back(Token{ arith_mod, 0 });
                             ++pos; break;
                         default:
-                            throw "unexpected character";
+                            throw "Unexpected character";
                         }
                         break;
                     default:
-                        throw "unexpected character";
+                        throw "Unexpected character";
                     }
                     break;
                 case '\t':
@@ -467,7 +462,7 @@ public:
                         res.push_back(Token{ heap_get, 0 });
                         ++pos; break;
                     default:
-                        throw "unexpected character";
+                        throw "Unexpected character";
                     }
                     break;
                 case '\n':
@@ -484,7 +479,7 @@ public:
                             res.push_back(Token{ output_num, 0 });
                             ++pos; break;
                         default:
-                            throw "unexpected character";
+                            throw "Unexpected character";
                         }
                         break;
                     case '\t':
@@ -497,15 +492,15 @@ public:
                             res.push_back(Token{ input_num, 0 });
                             ++pos; break;
                         default:
-                            throw "unexpected character";
+                            throw "Unexpected character";
                         }
                         break;
                     default:
-                        throw "unexpected character";
+                        throw "Unexpected character";
                     }
                     break;
                 default:
-                    throw "unexpected character";
+                    throw "Unexpected character";
                 }
                 break;
             case '\n':
@@ -532,7 +527,7 @@ public:
                         res.push_back(Token{ control_jump, makeLabel() });
                         break;
                     default:
-                        throw "unexpected character";
+                        throw "Unexpected character";
                     }
                     break;
                 case '\t':
@@ -550,7 +545,7 @@ public:
                         res.push_back(Token{ control_return, 0 });
                         ++pos; break;
                     default:
-                        throw "unexpected character";
+                        throw "Unexpected character";
                     }
                     break;
                 case '\n':
@@ -560,22 +555,22 @@ public:
                         res.push_back(Token{ control_exit, 0 });
                         ++pos; break;
                     default:
-                        throw "unexpected character";
+                        throw "Unexpected character";
                     }
                     break;
                 default:
-                    throw "unexpected character";
+                    throw "Unexpected character";
                 }
                 break;
             default:
-                throw "unexpected character";
+                throw "Unexpected character";
             }
 
             if (pos >= code.size() - 1) break; // IDK if needed
 
         }
 
-        // Label postprocessing
+        // Label postprocessing, so they hold the value where they point
         for (Token& tok : res) {
             if (tok.function == control_call ||
                 tok.function == control_jump ||
@@ -593,117 +588,83 @@ public:
     }
 };
 
-void printTokens(vector<Token> tokens) {
-    for (Token tok : tokens) {
+void printTokens(const vector<Token>& tokens) {
+    cout << "Tokens: <" << endl;
+    for (const Token& tok : tokens) {
         if (tok.function == stack_push) {
             cout << "stack_push";
-        }
-        else if (tok.function == stack_duplicate) {
+        } else if (tok.function == stack_duplicate) {
             cout << "stack_duplicate";
-        }
-        else if (tok.function == stack_discard) {
+        } else if (tok.function == stack_discard) {
             cout << "stack_discard";
-        }
-        else if (tok.function == stack_duplicateTop) {
+        } else if (tok.function == stack_duplicateTop) {
             cout << "stack_duplicateTop";
-        }
-        else if (tok.function == stack_swapTop) {
+        } else if (tok.function == stack_swapTop) {
             cout << "stack_swapTop";
-        }
-        else if (tok.function == stack_discardTop) {
+        } else if (tok.function == stack_discardTop) {
             cout << "stack_discardTop";
-        }
-        else if (tok.function == arith_add) {
+        } else if (tok.function == arith_add) {
             cout << "arith_add";
-        }
-        else if (tok.function == arith_sub) {
+        } else if (tok.function == arith_sub) {
             cout << "arith_sub";
-        }
-        else if (tok.function == arith_mult) {
+        } else if (tok.function == arith_mult) {
             cout << "arith_mult";
-        }
-        else if (tok.function == arith_div) {
+        } else if (tok.function == arith_div) {
             cout << "arith_div";
-        }
-        else if (tok.function == arith_mod) {
+        } else if (tok.function == arith_mod) {
             cout << "arith_mod";
-        }
-        else if (tok.function == heap_set) {
+        } else if (tok.function == heap_set) {
             cout << "heap_set";
-        }
-        else if (tok.function == heap_get) {
+        } else if (tok.function == heap_get) {
             cout << "heap_get";
-        }
-        else if (tok.function == output_char) {
+        } else if (tok.function == output_char) {
             cout << "output_char";
-        }
-        else if (tok.function == output_num) {
+        } else if (tok.function == output_num) {
             cout << "output_num";
-        }
-        else if (tok.function == input_char) {
+        } else if (tok.function == input_char) {
             cout << "input_char";
-        }
-        else if (tok.function == input_num) {
+        } else if (tok.function == input_num) {
             cout << "input_num";
-        }
-        else if (tok.function == control_call) {
+        } else if (tok.function == control_call) {
             cout << "control_call";
-        }
-        else if (tok.function == control_jump) {
+        } else if (tok.function == control_jump) {
             cout << "control_jump";
-        }
-        else if (tok.function == control_jumpIfZero) {
+        } else if (tok.function == control_jumpIfZero) {
             cout << "control_jumpIfZero";
-        }
-        else if (tok.function == control_jumpIfNegative) {
+        } else if (tok.function == control_jumpIfNegative) {
             cout << "control_jumpIfNegative";
-        }
-        else if (tok.function == control_return) {
+        } else if (tok.function == control_return) {
             cout << "control_return";
-        }
-        else if (tok.function == control_exit) {
+        } else if (tok.function == control_exit) {
             cout << "control_exit";
-        }
-        else if (tok.function == unexpected_endOfProgram) {
+        } else if (tok.function == unexpected_endOfProgram) {
             cout << "unexpected_endOfProgram";
-        }
-        else {
-            cout << "Unexpected token";
+        } else {
             throw "Unexpected token";
         }
         cout << " " << tok.value << endl;
     }
+    cout << ">" << endl;
 }
 
-void printCode(string code) {
+void printCode(const string& code) {
     bool readableFormat = true;
 
-    cout << "code: <";
+    cout << "Code: <";
     if (readableFormat) {
-        for (char ch : code) {
+        for (const char ch : code) {
             switch (ch) {
-            case '\t':
-                cout << "t";
-                break;
-            case '\n':
-                cout << "n";
-                break;
-            case ' ':
-                cout << "s";
+            case '\t': cout << "t"; break;
+            case '\n': cout << "n"; break;
+            case ' ' : cout << "s"; break;
             }
         }
-    }
-    else {
-        for (char ch : code) {
+    } else {
+        for (const char ch : code) {
             switch (ch) {
-            case '\t':
-                cout << "\\t";
-                break;
-            case '\n':
-                cout << "\\n";
-                break;
-            case ' ':
-                cout << " ";
+            case '\t': cout << "\\t"; break;
+            case '\n': cout << "\\n"; break;
+            case ' ' : cout << " "  ; break;
             }
         }
     }
@@ -711,9 +672,9 @@ void printCode(string code) {
 }
 
 // Solution
-string whitespace(const string& code, const string& inp = string()) {
+string whitespace(const string& code, const string& inp = "") {
 
-
+    // reset global variables
     mystack.clear();
     heap.clear();
     callStack.clear();
@@ -722,30 +683,23 @@ string whitespace(const string& code, const string& inp = string()) {
     pc = 0;
     myReader.reset();
 
-    mystack = vector<int>();
-    heap = map<int, int>();
-    callStack = vector<size_t>();
-    labels = map<size_t, size_t>();
-    myReader = Reader();
-
-    // strip everything but the 3 whitespaces
-    string code2 = "";
+    // get rid of everything but the 3 whitespaces (everything else is considered as comment)
+    string codeWithoutComments = "";
     for (const char ch : code) {
         if (ch == ' ' || ch == '\t' || ch == '\n') {
-            code2 += ch;
+            codeWithoutComments += ch;
         }
     }
+    printCode(codeWithoutComments);
 
-    Parser myparser(code2);
-    printCode(code2);
-
+    Parser myparser(codeWithoutComments);
     vector<Token> tokens = myparser.parse();
     printTokens(tokens);
 
     input = inp;
 
     // Interpreter
-    for (;;) {
+    for (;;) { // infinite loop
         Token tok = tokens[pc];
         void(*funcPtr)() = tok.function;
         if (funcPtr == control_exit) { // it needs to be in every correct program, if there is none the loop will break, beacuse the unexpected_endOfProgram function would be called resulting in throwing an error
@@ -818,7 +772,7 @@ int main() {
     //cout << whitespace("   \t \t\n  \t\t\t\n\t \t\t\t\n \t\n\n\n");
 
     // Testing_conditional_and_unconditional_jump_functionality
-    cout << whitespace("   \n   \t\n   \t \n   \t\t\n\n  \n\t\n \t \n \n\t  \n\n \n\n\n   \n\n\n\n");
+    //cout << whitespace("   \n   \t\n   \t \n   \t\t\n\n  \n\t\n \t \n \n\t  \n\n \n\n\n   \n\n\n\n");
 
     //cout << whitespace("   \t      \t \n   \t\t\t \t\t   \t\t  \t \n    \n\t\t    \t  \t   \n\t\n     \t\t  \t \t\n\t\n     \t\t \t\t  \n \n \t\n  \t\n     \t\t \t\t\t\t\n\t\n     \t     \n\t\n     \t \t \t\t\t\n\t\n     \t\t \t\t\t\t\n\t\n     \t\t\t  \t \n\t\n     \t\t \t\t  \n\t\n     \t\t  \t  \n\t\n     \t    \t\n\t\n     \t \t \n\t\n   !", "");
 
